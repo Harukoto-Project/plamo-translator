@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "メインウィンドウの権限(最小限)。http・shell・fs のプラグインは入れない",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

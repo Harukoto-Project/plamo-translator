@@ -1,0 +1,24 @@
+[package]
+name = "plamo-translator"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "PLaMo翻訳モデル(pfnet/plamo-2-translate)向けの翻訳デスクトップアプリ"
+default-run = "plamo-translator"
+
+[lib]
+# Windows で bin 名と衝突しないよう、`_lib` を付ける
+# https://github.com/rust-lang/cargo/issues/8519
+name = "plamo_translator_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+plamo-translator-core = { path = "../crates/core" }
+tauri = { version = "2", features = [] }
+specta.workspace = true
+specta-typescript.workspace = true
+tauri-specta.workspace = true

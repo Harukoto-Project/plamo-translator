@@ -1,0 +1,154 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+/* フォーカス時に枠(リング・枠線の色の変化)を出さない。`focus-visible:` の指定を無効にする */
+@custom-variant focus-visible (&:not(*));
+/*
+ * テーマ(ニュートラルなグレー系)
+ * 色・角丸・フォントの数値はこのファイルの CSS 変数に集約する。
+ * コンポーネント側に色や角丸の値を直書きしない。
+ */
+
+@theme inline {
+  --font-sans:
+    system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Yu Gothic UI",
+    "Meiryo", sans-serif;
+  --font-heading: var(--font-sans);
+  --font-serif:
+    ui-serif, Georgia, "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP",
+    serif;
+  --font-mono:
+    ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  /* ボタン・入力欄・メニュー項目などの操作部品(`rounded-md` / `rounded-lg`)は `rounded-sm` と同じ大きさにそろえる */
+  --radius-md: var(--radius-sm);
+  --radius-lg: var(--radius-sm);
+  /* ダイアログなどの面(`rounded-xl` 以上)は `--radius` の大きさにする */
+  --radius-xl: var(--radius);
+  --radius-2xl: var(--radius);
+  --radius-3xl: var(--radius);
+  --radius-4xl: var(--radius);
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #1a1a1a;
+  --card: #f5f5f5;
+  --card-foreground: #1a1a1a;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a1a;
+  --primary: #1a1a1a;
+  --primary-foreground: #ffffff;
+  --secondary: #f5f5f5;
+  --secondary-foreground: #1a1a1a;
+  --muted: #f5f5f5;
+  --muted-foreground: #666666;
+  --accent: #ebebeb;
+  --accent-foreground: #1a1a1a;
+  --destructive: #b53333;
+  --border: #e0e0e0;
+  --input: #e0e0e0;
+  /* フォーカスの境界線は非テキストのコントラスト 3:1 以上(背景 #ffffff に対して約 4.7:1)にする */
+  --ring: #737373;
+  --chart-1: #262626;
+  --chart-2: #525252;
+  --chart-3: #737373;
+  --chart-4: #a3a3a3;
+  --chart-5: #d4d4d4;
+  --radius: 0.75rem;
+  --sidebar: #fafafa;
+  --sidebar-foreground: #1a1a1a;
+  --sidebar-primary: #1a1a1a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ebebeb;
+  --sidebar-accent-foreground: #1a1a1a;
+  --sidebar-border: #e0e0e0;
+  --sidebar-ring: #737373;
+}
+
+.dark {
+  --background: #1a1a1a;
+  --foreground: #ececec;
+  --card: #2f2f2f;
+  --card-foreground: #ececec;
+  --popover: #2f2f2f;
+  --popover-foreground: #ececec;
+  --primary: #ececec;
+  --primary-foreground: #1a1a1a;
+  --secondary: #2f2f2f;
+  --secondary-foreground: #ececec;
+  --muted: #2f2f2f;
+  --muted-foreground: #a3a3a3;
+  --accent: #3a3a3a;
+  --accent-foreground: #ececec;
+  --destructive: #e5726b;
+  --border: #404040;
+  --input: #404040;
+  --ring: #a3a3a3;
+  --chart-1: #ececec;
+  --chart-2: #cfcfcf;
+  --chart-3: #a3a3a3;
+  --chart-4: #737373;
+  --chart-5: #525252;
+  --sidebar: #141414;
+  --sidebar-foreground: #ececec;
+  --sidebar-primary: #ececec;
+  --sidebar-primary-foreground: #1a1a1a;
+  --sidebar-accent: #2f2f2f;
+  --sidebar-accent-foreground: #ececec;
+  --sidebar-border: #404040;
+  --sidebar-ring: #a3a3a3;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  /* ブラウザ標準のフォーカス枠も出さない(`focus-visible:` のリングは上のカスタムバリアントで無効) */
+  :focus-visible {
+    outline: none;
+  }
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground;
+    /* 本文は 15〜16px、行間 1.6〜1.7(読みやすさ重視のタイポグラフィ) */
+    font-size: 15px;
+    line-height: 1.65;
+  }
+}

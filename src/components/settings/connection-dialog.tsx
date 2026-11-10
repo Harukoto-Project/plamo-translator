@@ -25,7 +25,7 @@ export function ConnectionDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
-          <Button variant="outline" size="sm">
+          <Button variant="ghost">
             <SettingsIcon aria-hidden="true" />
             {t("settings.open")}
           </Button>

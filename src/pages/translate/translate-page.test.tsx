@@ -129,6 +129,14 @@ describe("TranslatePage", () => {
     expect(captured.request?.text).toBe("こんにちは");
   });
 
+  it("翻訳ボタンはショートカットを示し、キーの表示は読み上げの名前に含めない", () => {
+    renderPage();
+
+    const button = screen.getByRole("button", { name: "翻訳" });
+    expect(button).toHaveAttribute("aria-keyshortcuts", "Control+Enter");
+    expect(button).toHaveTextContent("Ctrl");
+  });
+
   it("Enter だけでは翻訳せず、改行する", async () => {
     const captured = captureTranslation();
     const user = userEvent.setup();

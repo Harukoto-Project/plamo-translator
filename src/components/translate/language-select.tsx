@@ -20,7 +20,7 @@ interface LanguageSelectProps<V extends string> {
   disabled?: boolean;
 }
 
-/** 選択肢から1つ選ぶ。言語の選択(原文は「自動」を含む)に使う。 */
+/** 選択肢から1つ選ぶ。言語の選択(原文は「自動」を含む)に使う。枠を出さず、ペインの見出しとして見せる。 */
 export function LanguageSelect<V extends string>({
   label,
   value,
@@ -37,7 +37,10 @@ export function LanguageSelect<V extends string>({
         if (next !== null) onChange(next);
       }}
     >
-      <SelectTrigger aria-label={label} className="w-full sm:w-44">
+      <SelectTrigger
+        aria-label={label}
+        className="min-w-0 border-transparent font-medium hover:bg-muted dark:bg-transparent dark:hover:bg-muted"
+      >
         <SelectValue />
       </SelectTrigger>
       <SelectContent alignItemWithTrigger={false}>

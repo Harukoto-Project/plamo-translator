@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>plamo-translator (light)</title>
+  <rect width="1024" height="1024" rx="224" fill="#f5f5f5"/>
+  <!-- Source bubble (top-left): letter A -->
+  <rect x="176" y="192" width="464" height="368" rx="96" fill="#1a1a1a"/>
+  <path fill="#1a1a1a" d="M240 530H356L240 664Z"/>
+  <path d="M336 476L408 276L480 476M362 408H454" fill="none" stroke="#f5f5f5" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Translation bubble (bottom-right): text lines, with a gap from the source bubble -->
+  <rect x="360" y="440" width="512" height="416" rx="120" fill="#f5f5f5"/>
+  <rect x="384" y="464" width="464" height="368" rx="96" fill="#1a1a1a"/>
+  <path fill="#1a1a1a" d="M788 800H672L788 934Z"/>
+  <rect x="480" y="566" width="272" height="36" rx="18" fill="#f5f5f5"/>
+  <rect x="480" y="630" width="272" height="36" rx="18" fill="#f5f5f5"/>
+  <rect x="480" y="694" width="168" height="36" rx="18" fill="#f5f5f5"/>
+</svg>

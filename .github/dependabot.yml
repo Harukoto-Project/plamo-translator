@@ -1,0 +1,7 @@
+﻿version: 2
+updates:
+  # CI で使う GitHub Actions(コミットSHAで固定している)の更新を提案する
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

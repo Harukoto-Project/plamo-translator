@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ConnectionDialog } from "@/components/settings/connection-dialog";
 import { LanguageBar } from "@/components/translate/language-bar";
@@ -5,25 +6,35 @@ import { SourcePane } from "@/components/translate/source-pane";
 import { TargetPane } from "@/components/translate/target-pane";
 import { TranslateNotices } from "@/components/translate/translate-notices";
 import { useAppInfo } from "@/hooks/use-app-info";
+import { useLanguageSelection } from "@/hooks/use-language-selection";
 import { useTranslator } from "@/hooks/use-translator";
-import {
-  changeSourceLang,
-  changeTargetLang,
-  type LangPair,
-} from "@/lib/languages";
 
 /** 翻訳画面。原文と訳文の2ペイン(広い幅では左右、狭い幅では上下)。 */
 export function TranslatePage() {
   const { t } = useTranslation();
   const { data: appInfo } = useAppInfo();
+  const [sourceText, setSourceText] = useState("");
+  const language = useLanguageSelection(sourceText);
   const translator = useTranslator();
-  const { sourceLang, targetLang, state } = translator;
+  const { state } = translator;
   const running = state.status === "running";
 
-  const pair: LangPair = { source: sourceLang, target: targetLang };
-  const applyPair = (next: LangPair) => {
-    translator.setSourceLang(next.source);
-    translator.setTargetLang(next.target);
+  const translate = () => {
+    const pair = language.resolve();
+    translator.translate({
+      text: sourceText,
+      sourceLang: pair.source,
+      targetLang: pair.target,
+    });
+  };
+
+  /** 言語を入れ替え、訳文があれば原文欄に移す(訳文欄は空にする)。 */
+  const swap = () => {
+    language.swap();
+    if (state.text !== "") {
+      setSourceText(state.text);
+      translator.reset();
+    }
   };
 
   return (
@@ -41,22 +52,28 @@ export function TranslatePage() {
       </header>
 
       <LanguageBar
-        sourceLang={sourceLang}
-        targetLang={targetLang}
-        onSourceChange={(lang) => applyPair(changeSourceLang(pair, lang))}
-        onTargetChange={(lang) => applyPair(changeTargetLang(pair, lang))}
+        sourceChoice={language.choice}
+        targetLang={language.shown.target}
+        detected={language.detected}
+        onSourceChange={language.selectSource}
+        onTargetChange={language.selectTarget}
+        onSwap={swap}
         disabled={running}
       />
 
       <div className="flex flex-1 flex-col gap-4 md:flex-row">
         <SourcePane
-          value={translator.sourceText}
-          onChange={translator.setSourceText}
+          value={sourceText}
+          onChange={setSourceText}
           running={running}
-          onTranslate={translator.translate}
+          onTranslate={translate}
           onStop={translator.stop}
         />
-        <TargetPane state={state} />
+        <TargetPane
+          state={state}
+          retranslateDisabled={sourceText.trim() === ""}
+          onRetranslate={translate}
+        />
       </div>
 
       <TranslateNotices state={state} />

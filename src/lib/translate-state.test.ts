@@ -94,6 +94,21 @@ describe("translateReducer", () => {
     expect(state.error).toEqual(error);
   });
 
+  it("リセットすると、訳文などを消して最初の状態に戻る", () => {
+    const state = run(
+      { type: "start" },
+      delta("Hel"),
+      { type: "event", event: { type: "done" } },
+      { type: "reset" },
+    );
+    expect(state).toEqual(initialTranslateState);
+  });
+
+  it("実行中は、リセットしない", () => {
+    const running = run({ type: "start" }, delta("Hel"));
+    expect(translateReducer(running, { type: "reset" })).toBe(running);
+  });
+
   it("実行中でないときに届いたイベントは無視する", () => {
     expect(run(delta("late"))).toEqual(initialTranslateState);
 

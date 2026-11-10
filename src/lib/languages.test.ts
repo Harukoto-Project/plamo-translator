@@ -2,13 +2,20 @@ import { describe, expect, it } from "vitest";
 import {
   changeSourceLang,
   changeTargetLang,
+  fallbackTargetFor,
   isLang,
   languages,
+  resolveLanguages,
+  sourceChoices,
 } from "@/lib/languages";
 
 describe("languages", () => {
   it("日本語・英語・韓国語を選べる", () => {
     expect(languages).toEqual(["ja", "en", "ko"]);
+  });
+
+  it("原文は、先頭に「自動」を加えて選べる", () => {
+    expect(sourceChoices).toEqual(["auto", "ja", "en", "ko"]);
   });
 
   it("isLang は、対応する言語だけを通す", () => {
@@ -38,6 +45,61 @@ describe("changeSourceLang", () => {
       source: "ja",
       target: "en",
     });
+  });
+});
+
+describe("fallbackTargetFor", () => {
+  it("日本語なら英語、それ以外は日本語", () => {
+    expect(fallbackTargetFor("ja")).toBe("en");
+    expect(fallbackTargetFor("en")).toBe("ja");
+    expect(fallbackTargetFor("ko")).toBe("ja");
+  });
+});
+
+describe("resolveLanguages", () => {
+  const base = { target: "en", detected: undefined, fallback: "ja" } as const;
+
+  it("手動の選択は、判定を使わない", () => {
+    expect(resolveLanguages({ ...base, choice: "ko", detected: "en" })).toEqual(
+      { source: "ko", target: "en" },
+    );
+  });
+
+  it("自動なら、判定した言語を原文にする", () => {
+    expect(
+      resolveLanguages({ ...base, choice: "auto", detected: "ko" }),
+    ).toEqual({ source: "ko", target: "en" });
+  });
+
+  it("自動で判定できなければ、直前の言語を使う", () => {
+    expect(
+      resolveLanguages({ ...base, choice: "auto", fallback: "ko" }),
+    ).toEqual({ source: "ko", target: "en" });
+  });
+
+  it("判定した言語が訳文と同じなら、訳文を切り替える(日本語なら英語)", () => {
+    expect(
+      resolveLanguages({
+        choice: "auto",
+        target: "ja",
+        detected: "ja",
+        fallback: "ja",
+      }),
+    ).toEqual({ source: "ja", target: "en" });
+  });
+
+  it("判定した言語が訳文と同じなら、訳文を切り替える(日本語以外なら日本語)", () => {
+    expect(
+      resolveLanguages({ ...base, choice: "auto", detected: "en" }),
+    ).toEqual({ source: "en", target: "ja" });
+    expect(
+      resolveLanguages({
+        choice: "auto",
+        target: "ko",
+        detected: "ko",
+        fallback: "ja",
+      }),
+    ).toEqual({ source: "ko", target: "ja" });
   });
 });
 

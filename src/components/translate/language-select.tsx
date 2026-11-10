@@ -1,4 +1,3 @@
-import { useTranslation } from "react-i18next";
 import {
   Select,
   SelectContent,
@@ -6,34 +5,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { languages } from "@/lib/languages";
-import type { Lang } from "@/types/bindings";
 
-interface LanguageSelectProps {
+export interface LanguageOption<V extends string> {
+  value: V;
+  label: string;
+}
+
+interface LanguageSelectProps<V extends string> {
   /** 画面に出さない、読み上げ用のラベル */
   label: string;
-  value: Lang;
-  onChange: (lang: Lang) => void;
+  value: V;
+  options: readonly LanguageOption<V>[];
+  onChange: (value: V) => void;
   disabled?: boolean;
 }
 
-/** 言語を1つ選ぶ。 */
-export function LanguageSelect({
+/** 選択肢から1つ選ぶ。言語の選択(原文は「自動」を含む)に使う。 */
+export function LanguageSelect<V extends string>({
   label,
   value,
+  options,
   onChange,
   disabled,
-}: LanguageSelectProps) {
-  const { t } = useTranslation();
-  const items = languages.map((lang) => ({
-    value: lang,
-    label: t(`languages.${lang}`),
-  }));
-
+}: LanguageSelectProps<V>) {
   return (
     <Select
       value={value}
-      items={items}
+      items={options}
       disabled={disabled}
       onValueChange={(next) => {
         if (next !== null) onChange(next);
@@ -43,9 +41,9 @@ export function LanguageSelect({
         <SelectValue />
       </SelectTrigger>
       <SelectContent alignItemWithTrigger={false}>
-        {items.map((item) => (
-          <SelectItem key={item.value} value={item.value}>
-            {item.label}
+        {options.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
           </SelectItem>
         ))}
       </SelectContent>

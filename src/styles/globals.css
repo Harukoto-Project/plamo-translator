@@ -163,3 +163,11 @@
     line-height: 1.65;
   }
 }
+
+/*
+ * ボタンを押したときに沈む動き(生成物の `active:translate-y-px`)を出さない。
+ * ユーティリティより優先させるため、レイヤーの外に置く
+ */
+[data-slot="button"]:active {
+  translate: none;
+}

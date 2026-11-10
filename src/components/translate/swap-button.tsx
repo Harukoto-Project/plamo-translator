@@ -19,26 +19,26 @@ export function SwapButton({ onSwap, disabled, className }: SwapButtonProps) {
   const { t } = useTranslation();
   const label = t("translate.swap");
 
+  // 位置の指定(綴じ目に載せる translate など)は、ボタン自身ではなく外側に付ける
   return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Button
-            variant="outline"
-            size="icon"
-            aria-label={label}
-            onClick={onSwap}
-            disabled={disabled}
-            className={cn(
-              "bg-sheet hover:bg-muted dark:bg-sheet dark:hover:bg-muted",
-              className,
-            )}
-          >
-            <ArrowLeftRightIcon aria-hidden="true" />
-          </Button>
-        }
-      />
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
+    <span className={cn("inline-flex", className)}>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label={label}
+              onClick={onSwap}
+              disabled={disabled}
+              className="bg-sheet hover:bg-muted dark:bg-sheet dark:hover:bg-muted"
+            >
+              <ArrowLeftRightIcon aria-hidden="true" />
+            </Button>
+          }
+        />
+        <TooltipContent>{label}</TooltipContent>
+      </Tooltip>
+    </span>
   );
 }

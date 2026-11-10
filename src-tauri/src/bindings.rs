@@ -13,7 +13,20 @@ const BINDINGS_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../src/types/b
 
 /// コマンドを登録した `Builder` を作る。
 pub fn builder() -> Builder<tauri::Wry> {
-    Builder::<tauri::Wry>::new().commands(collect_commands![commands::app::app_info])
+    // `#[serde(default)]` による読み込み時だけの違いで、型が `_Serialize` / `_Deserialize` に
+    // 分裂しないよう、送受信で同じ型にまとめる(省略できる項目は `?` 付きになる)
+    Builder::<tauri::Wry>::new()
+        .disable_serde_phases()
+        .commands(collect_commands![
+            commands::app::app_info,
+            commands::secrets::secret_clear,
+            commands::secrets::secret_set,
+            commands::secrets::secret_status,
+            commands::settings::settings_get,
+            commands::settings::settings_update,
+            commands::translate::translate_cancel,
+            commands::translate::translate_start,
+        ])
 }
 
 /// TypeScript の型を書き出す。

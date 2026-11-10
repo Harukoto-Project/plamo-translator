@@ -1,26 +1,65 @@
 import { useTranslation } from "react-i18next";
-import { Button } from "@/components/ui/button";
+import { ConnectionDialog } from "@/components/settings/connection-dialog";
+import { LanguageBar } from "@/components/translate/language-bar";
+import { SourcePane } from "@/components/translate/source-pane";
+import { TargetPane } from "@/components/translate/target-pane";
+import { TranslateNotices } from "@/components/translate/translate-notices";
 import { useAppInfo } from "@/hooks/use-app-info";
+import { useTranslator } from "@/hooks/use-translator";
+import {
+  changeSourceLang,
+  changeTargetLang,
+  type LangPair,
+} from "@/lib/languages";
 
-/** 翻訳画面。土台(⓪)ではプレースホルダー。翻訳の本体は①で作る。 */
+/** 翻訳画面。原文と訳文の2ペイン(広い幅では左右、狭い幅では上下)。 */
 export function TranslatePage() {
   const { t } = useTranslation();
-  const { data, isError, refetch } = useAppInfo();
+  const { data: appInfo } = useAppInfo();
+  const translator = useTranslator();
+  const { sourceLang, targetLang, state } = translator;
+  const running = state.status === "running";
+
+  const pair: LangPair = { source: sourceLang, target: targetLang };
+  const applyPair = (next: LangPair) => {
+    translator.setSourceLang(next.source);
+    translator.setTargetLang(next.target);
+  };
 
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center gap-4 p-6 text-center">
-      <h1 className="font-serif text-3xl">{t("app.name")}</h1>
-      <p className="text-muted-foreground">{t("app.tagline")}</p>
-      {data && (
-        <p className="text-sm text-muted-foreground">
-          {data.name} v{data.version}
-        </p>
-      )}
-      {isError && (
-        <Button variant="outline" onClick={() => refetch()}>
-          {t("appInfo.retry")}
-        </Button>
-      )}
+    <main className="mx-auto flex min-h-svh w-full max-w-6xl flex-col gap-4 p-4 sm:p-6">
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-col">
+          <h1 className="font-serif text-2xl">{t("app.name")}</h1>
+          {appInfo && (
+            <p className="text-xs text-muted-foreground">
+              {appInfo.name} v{appInfo.version}
+            </p>
+          )}
+        </div>
+        <ConnectionDialog />
+      </header>
+
+      <LanguageBar
+        sourceLang={sourceLang}
+        targetLang={targetLang}
+        onSourceChange={(lang) => applyPair(changeSourceLang(pair, lang))}
+        onTargetChange={(lang) => applyPair(changeTargetLang(pair, lang))}
+        disabled={running}
+      />
+
+      <div className="flex flex-1 flex-col gap-4 md:flex-row">
+        <SourcePane
+          value={translator.sourceText}
+          onChange={translator.setSourceText}
+          running={running}
+          onTranslate={translator.translate}
+          onStop={translator.stop}
+        />
+        <TargetPane state={state} />
+      </div>
+
+      <TranslateNotices state={state} />
     </main>
   );
 }

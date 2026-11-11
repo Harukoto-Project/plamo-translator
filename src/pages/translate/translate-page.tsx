@@ -39,7 +39,7 @@ export function TranslatePage() {
     <div className="flex min-h-svh flex-col bg-frame">
       <AppHeader />
       <main className="mx-auto flex w-full max-w-6xl min-h-0 flex-1 flex-col px-3 pb-3 sm:px-6 sm:pb-6">
-        <div className="@container flex min-h-104 flex-1 flex-col overflow-hidden rounded-xl border bg-sheet shadow-xs">
+        <div className="@container flex min-h-104 flex-1 flex-col overflow-hidden rounded-xl border bg-sheet shadow-xs max-h-96 mt-6">
           <LanguageBar
             sourceChoice={language.choice}
             targetLang={language.shown.target}

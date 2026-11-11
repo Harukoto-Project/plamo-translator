@@ -1,0 +1,170 @@
+name: Release
+
+# `vX.Y.Z`のタグをpushすると、3OSのインストーラーをビルドして、GitHub Releasesにドラフトを作る。
+# ドラフトを公開(Publish release)すると、アプリの自動更新が見に行く`latest.json`が最新になる。
+# 最初のタグの前に、公開鍵の差し替えと署名用のGitHub Secretsが必要(verify-versionが止める)。
+on:
+  push:
+    tags: ["v*"]
+
+# 同じタグのリリースは並行させない。途中で止めると中途半端なドラフトが残るので、キャンセルもしない
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  # タグ・package.json・tauri.conf.json・Cargo.tomlのバージョンが食い違うと、
+  # 更新が「最新版」と判定されなくなる。ビルドの前に止める。
+  # 公開鍵がプレースホルダのまま、または署名のSecretsが無いときも、ドラフトを作る前に止める
+  verify-version:
+    name: Verify version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check that the tag matches every version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -eu
+          expected="${TAG#v}"
+          package=$(jq -r .version package.json)
+          tauri=$(jq -r .version src-tauri/tauri.conf.json)
+          cargo=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)
+          echo "tag=$expected package.json=$package tauri.conf.json=$tauri Cargo.toml=$cargo"
+          if [ "$package" != "$expected" ] || [ "$tauri" != "$expected" ] || [ "$cargo" != "$expected" ]; then
+            echo "::error::タグ($TAG)と、package.json・tauri.conf.json・Cargo.tomlのバージョンが一致しません"
+            exit 1
+          fi
+          # この文字列はtauri.conf.jsonのplugins.updater.pubkeyと揃える
+          pubkey=$(jq -r '.plugins.updater.pubkey' src-tauri/tauri.conf.json)
+          if [ "$pubkey" = "PLACEHOLDER_REPLACE_WITH_TAURI_UPDATER_PUBKEY" ]; then
+            echo "::error::plugins.updater.pubkeyがプレースホルダのままです。pnpm tauri signer generateが表示した公開鍵に差し替えてからタグを打ってください"
+            exit 1
+          fi
+      - name: Check signing secrets
+        env:
+          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          set -eu
+          # 値は出さない。空かどうかだけを見る
+          if [ -z "$SIGNING_KEY" ] || [ -z "$SIGNING_PASSWORD" ]; then
+            echo "::error::GitHub SecretsのTAURI_SIGNING_PRIVATE_KEYとTAURI_SIGNING_PRIVATE_KEY_PASSWORDを登録してからタグを打ってください"
+            exit 1
+          fi
+
+  # ドラフトのリリースを先に1回だけ作る。ビルドのジョブが同時に作ろうとして、重複するのを防ぐ
+  create-release:
+    name: Create draft release
+    needs: verify-version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      release_id: ${{ steps.create.outputs.release_id }}
+    steps:
+      - name: Create draft release
+        id: create
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -eu
+          # ドラフトは「タグから取得」のAPIでは見えないので、一覧から探す
+          find_release_id() {
+            gh api "repos/$GH_REPO/releases?per_page=100" \
+              | jq -r --arg tag "$TAG" 'map(select(.tag_name == $tag)) | first | .id // empty'
+          }
+          # 再実行で、すでにドラフトがあるときは作り直さずに使う
+          release_id=$(find_release_id)
+          if [ -z "$release_id" ]; then
+            # 作成直後は一覧に反映されないことがあるため、作成のレスポンスからIDを受け取る
+            release_id=$(gh api --method POST "repos/$GH_REPO/releases" \
+              -f tag_name="$TAG" -f name="PLaMo Translator $TAG" \
+              -F draft=true -F generate_release_notes=true --jq .id)
+          fi
+          if [ -z "$release_id" ]; then
+            echo "::error::リリースのIDを取得できませんでした"
+            exit 1
+          fi
+          echo "release_id=$release_id" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build (${{ matrix.os }})
+    needs: create-release
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # AppImageが古いglibcでも動くよう、新しすぎないUbuntuを使う
+          - os: ubuntu-22.04
+            args: ""
+          - os: windows-latest
+            args: ""
+          # Apple SiliconとIntelを1つのアプリにまとめる
+          - os: macos-latest
+            args: --target universal-apple-darwin
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          targets: ${{ runner.os == 'macOS' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - run: pnpm install --frozen-lockfile
+      - uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # action-v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 更新ファイルへの署名。アプリは、tauri.conf.jsonの公開鍵でこの署名を検証する。
+          # 秘密鍵の中身はSecretsだけに置く
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tauriScript: pnpm tauri
+          releaseId: ${{ needs.create-release.outputs.release_id }}
+          # 同じWindows用にNSISとMSIの両方ができる。更新はNSISに統一する
+          updaterJsonPreferNsis: true
+          args: ${{ matrix.args }}
+
+  # 3OSが並行して`latest.json`を更新するので、書き込みが重なると一部のOSが抜けることがある。
+  # 公開する前に、全OS分がそろっているかを確かめる(抜けていたら、失敗したジョブを再実行する)
+  verify-updater-json:
+    name: Verify latest.json
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check platforms in latest.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -eu
+          gh release download "$TAG" --pattern latest.json --output latest.json
+          jq '.platforms | keys' latest.json
+          missing=0
+          for platform in windows-x86_64 darwin-aarch64 darwin-x86_64 linux-x86_64; do
+            if ! jq -e --arg p "$platform" '.platforms[$p].signature | length > 0' latest.json > /dev/null; then
+              echo "::error::latest.jsonに${platform}がありません"
+              missing=1
+            fi
+          done
+          exit $missing

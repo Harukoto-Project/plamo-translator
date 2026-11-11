@@ -12,6 +12,14 @@ pub fn run() {
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {
             builder.mount_events(app);
+            // 自動更新(GitHub Releasesのlatest.jsonを見る)と、更新後の再起動。
+            // デスクトップだけ。公開鍵は設定にあり、秘密鍵はリポジトリに置かない
+            #[cfg(desktop)]
+            {
+                app.handle()
+                    .plugin(tauri_plugin_updater::Builder::new().build())?;
+                app.handle().plugin(tauri_plugin_process::init())?;
+            }
             // 設定ファイルの置き場所。OSごとのアプリのデータディレクトリ
             let data_dir = app.path().app_data_dir()?;
             app.manage(state::AppState::new(data_dir)?);

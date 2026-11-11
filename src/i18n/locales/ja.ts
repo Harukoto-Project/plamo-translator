@@ -70,6 +70,20 @@ export const ja = {
     loadFailed: "設定を読み込めませんでした",
     version: "バージョン {{version}}",
   },
+  // 自動更新。リリースノートは出さない(ビルド時点の本文で固定され、後から直しても届かない)
+  update: {
+    title: "新しいバージョンがあります",
+    availableDescription:
+      "v{{current}}からv{{next}}に更新できます。更新するとアプリが再起動します。",
+    later: "あとで",
+    installAndRestart: "更新して再起動",
+    retry: "もう一度試す",
+    downloading: "ダウンロード中",
+    percent: "{{percent}}%",
+    installFailed: "更新できませんでした: {{detail}}",
+    installFailedUnknown: "更新できませんでした。",
+    missing: "更新が見つかりません。",
+  },
   // Rust が返すエラーの種別ごとの文言(`lib/app-error.ts` が引く)
   errors: {
     connectionFailed:

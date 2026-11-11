@@ -1,6 +1,6 @@
 //! TypeScript の型(`src/types/bindings.ts`)を生成する。ウィンドウは開かない。
 //!
-//! 実行: `pnpm bindings`(`cargo run -p plamo-translator --bin export-bindings`)。
+//! 実行: `pnpm bindings`(`cargo run -p plamo-translator --bin export-bindings --features export-bindings`)。
 //! CI では、実行後に差分がないことを確認する。
 
 fn main() {

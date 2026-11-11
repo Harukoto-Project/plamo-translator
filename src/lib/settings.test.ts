@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { parseMaxTokens, resolveSettings } from "@/lib/settings";
 
+const profiles = {
+  activeId: "default",
+  profiles: [
+    {
+      id: "default",
+      name: "vLLM",
+      baseUrl: "http://x/v1",
+      model: "m",
+    },
+  ],
+};
+
 describe("parseMaxTokens", () => {
   it("1以上の整数を受け付ける(前後の空白は無視)", () => {
     expect(parseMaxTokens("1024")).toBe(1024);
@@ -26,10 +38,12 @@ describe("resolveSettings", () => {
       resolveSettings({
         connection: { baseUrl: "http://x/v1", model: "m" },
         generation: { maxTokens: 10 },
+        profiles,
       }),
     ).toEqual({
       connection: { baseUrl: "http://x/v1", model: "m" },
       generation: { maxTokens: 10 },
+      profiles,
     });
   });
 

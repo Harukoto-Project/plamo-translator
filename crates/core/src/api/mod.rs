@@ -7,6 +7,7 @@ mod active;
 mod completions;
 mod connection;
 mod http;
+mod models;
 mod sse;
 mod stats;
 #[cfg(test)]
@@ -50,6 +51,11 @@ impl ApiClient {
     /// 実行中のリクエストを中断する。実行中のものがあれば `true`。
     pub fn cancel(&self, request_id: &str) -> bool {
         self.active.cancel(request_id)
+    }
+
+    /// `GET {base_url}/models` のモデルID。
+    pub async fn list_models(&self, connection: &Connection) -> Result<Vec<String>, AppError> {
+        models::list_models(&self.http, connection).await
     }
 }
 

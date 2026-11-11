@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use plamo_translator_core::api::ApiClient;
 use plamo_translator_core::error::AppError;
+use plamo_translator_core::profiles::ProfileService;
 use plamo_translator_core::secrets::{KeyringStore, SecretStore};
 use plamo_translator_core::settings::SettingsStore;
 
@@ -12,17 +13,19 @@ pub struct AppState {
     pub api: ApiClient,
     /// 設定ファイル(`<データディレクトリ>/settings.json`)
     pub settings: Arc<SettingsStore>,
-    /// APIキーの保存先(OSの資格情報ストア)
-    pub secrets: Arc<dyn SecretStore>,
+    /// 接続プロファイルと、プロファイルごとのAPIキー
+    pub profiles: Arc<ProfileService>,
 }
 
 impl AppState {
     /// `data_dir` はアプリのデータディレクトリ。
     pub fn new(data_dir: PathBuf) -> Result<Self, AppError> {
+        let settings = Arc::new(SettingsStore::new(data_dir));
+        let secrets: Arc<dyn SecretStore> = Arc::new(KeyringStore);
         Ok(Self {
             api: ApiClient::new()?,
-            settings: Arc::new(SettingsStore::new(data_dir)),
-            secrets: Arc::new(KeyringStore),
+            profiles: Arc::new(ProfileService::new(settings.clone(), secrets)),
+            settings,
         })
     }
 }
@@ -36,5 +39,5 @@ where
 {
     tauri::async_runtime::spawn_blocking(work)
         .await
-        .map_err(|e| AppError::internal(format!("内部エラーが発生しました: {e}")))?
+        .map_err(|error| AppError::internal(format!("内部エラーが発生しました: {error}")))?
 }

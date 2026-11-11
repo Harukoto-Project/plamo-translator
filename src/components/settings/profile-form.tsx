@@ -1,44 +1,60 @@
 import { type FormEvent, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ModelField } from "@/components/settings/model-field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { type KeyChange, useSaveConnection } from "@/hooks/use-settings";
+import { type KeyChange, useSaveProfile } from "@/hooks/use-profiles";
+import { useApiKeyStatus } from "@/hooks/use-settings";
 import { describeAppError } from "@/lib/app-error";
-import { parseMaxTokens, type ResolvedSettings } from "@/lib/settings";
+import { parseMaxTokens } from "@/lib/settings";
 import { toAppError } from "@/services/ipc";
-import type { AppError, KeyStatus } from "@/types/bindings";
+import type { AppError, ConnectionProfile } from "@/types/bindings";
 
-interface ConnectionFormProps {
-  initial: ResolvedSettings;
-  keyStatus: KeyStatus;
+interface ProfileFormProps {
+  profile: ConnectionProfile;
+  /** 使用中でなければ、切り替えボタンを出す */
+  active: boolean;
+  maxTokens: number;
+  onUse: () => void;
+  using: boolean;
   onSaved: () => void;
   onCancel: () => void;
 }
 
-/** 接続設定の入力フォーム。保存できたら `onSaved` を呼ぶ。 */
-export function ConnectionForm({
-  initial,
-  keyStatus,
+/** 選択中の接続先と、全体の最大出力トークン数。 */
+export function ProfileForm({
+  profile,
+  active,
+  maxTokens: initialMaxTokens,
+  onUse,
+  using,
   onSaved,
   onCancel,
-}: ConnectionFormProps) {
+}: ProfileFormProps) {
   const { t } = useTranslation();
-  const ids = { url: useId(), model: useId(), key: useId(), tokens: useId() };
-  const save = useSaveConnection();
+  const ids = { name: useId(), url: useId(), key: useId(), tokens: useId() };
+  const save = useSaveProfile();
+  const keyStatus = useApiKeyStatus(profile.id);
 
-  const [baseUrl, setBaseUrl] = useState(initial.connection.baseUrl);
-  const [model, setModel] = useState(initial.connection.model);
-  const [maxTokens, setMaxTokens] = useState(
-    String(initial.generation.maxTokens),
-  );
+  const [name, setName] = useState(profile.name);
+  const [baseUrl, setBaseUrl] = useState(profile.baseUrl);
+  const [model, setModel] = useState(profile.model);
+  const [maxTokens, setMaxTokens] = useState(String(initialMaxTokens));
   const [apiKey, setApiKey] = useState("");
   const [clearKey, setClearKey] = useState(false);
   const [error, setError] = useState<AppError | null>(null);
+  const [unsavedKey, setUnsavedKey] = useState(false);
 
-  const keySaved = keyStatus === "saved";
+  const storedStatus = keyStatus.data;
+  const keySaved = storedStatus === "saved" || storedStatus === "unsaved";
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -48,6 +64,7 @@ export function ConnectionForm({
       return;
     }
     setError(null);
+    setUnsavedKey(false);
 
     const keyChange: KeyChange =
       apiKey !== ""
@@ -58,22 +75,48 @@ export function ConnectionForm({
 
     save.mutate(
       {
-        settings: {
-          connection: { baseUrl, model },
-          generation: { maxTokens: parsedTokens },
-        },
+        profile: { id: profile.id, name, baseUrl, model },
+        maxTokens: parsedTokens,
         keyChange,
       },
       {
-        onSuccess: onSaved,
+        onSuccess: (status) => {
+          if (status === "unsaved") {
+            setUnsavedKey(true);
+            setApiKey("");
+            return;
+          }
+          onSaved();
+        },
         onError: (cause) => setError(toAppError(cause)),
       },
     );
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-4">
+    <form onSubmit={submit} className="flex min-w-0 flex-col gap-4">
+      {!active && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="self-start"
+          disabled={using}
+          onClick={onUse}
+        >
+          {t("settings.use")}
+        </Button>
+      )}
       <FieldGroup>
+        <Field>
+          <FieldLabel htmlFor={ids.name}>{t("settings.name")}</FieldLabel>
+          <Input
+            id={ids.name}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            autoComplete="off"
+          />
+        </Field>
         <Field>
           <FieldLabel htmlFor={ids.url}>{t("settings.baseUrl")}</FieldLabel>
           <Input
@@ -85,19 +128,7 @@ export function ConnectionForm({
             placeholder={t("settings.baseUrlHint")}
           />
         </Field>
-
-        <Field>
-          <FieldLabel htmlFor={ids.model}>{t("settings.model")}</FieldLabel>
-          <Input
-            id={ids.model}
-            value={model}
-            onChange={(event) => setModel(event.target.value)}
-            spellCheck={false}
-            autoComplete="off"
-            placeholder={t("settings.modelHint")}
-          />
-        </Field>
-
+        <ModelField profileId={profile.id} value={model} onChange={setModel} />
         <Field>
           <FieldLabel htmlFor={ids.key}>{t("settings.apiKey")}</FieldLabel>
           <Input
@@ -111,7 +142,7 @@ export function ConnectionForm({
             autoComplete="off"
           />
           {keySaved && apiKey === "" && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {clearKey && (
                 <span className="text-xs text-muted-foreground">
                   {t("settings.apiKeyWillClear")}
@@ -129,8 +160,12 @@ export function ConnectionForm({
               </Button>
             </div>
           )}
+          {(unsavedKey || storedStatus === "unsaved") && (
+            <p role="status" className="text-xs text-muted-foreground">
+              {t("settings.apiKeyUnsaved")}
+            </p>
+          )}
         </Field>
-
         <Field>
           <FieldLabel htmlFor={ids.tokens}>
             {t("settings.maxTokens")}
@@ -140,8 +175,8 @@ export function ConnectionForm({
             inputMode="numeric"
             value={maxTokens}
             onChange={(event) => setMaxTokens(event.target.value)}
-            placeholder={t("settings.maxTokensHint")}
           />
+          <FieldDescription>{t("settings.maxTokensHint")}</FieldDescription>
         </Field>
       </FieldGroup>
 

@@ -1,6 +1,7 @@
 import type {
   ConnectionSettings,
   GenerationSettings,
+  ProfileBook,
   Settings,
 } from "@/types/bindings";
 
@@ -10,10 +11,13 @@ import type {
  * Rust の型は、保存ファイルに無い項目を既定値で補えるよう `#[serde(default)]` が付いていて、
  * 生成される TypeScript の型では項目が省略可能(`?`)になる。Rust は読み込み時に必ず補って返すので、
  * 画面では全て揃っているものとして扱う。
+ *
+ * `generation` は、あとから足される項目を落とさないよう、そのまま広げる。
  */
 export interface ResolvedSettings {
   connection: Required<ConnectionSettings>;
-  generation: Required<GenerationSettings>;
+  generation: GenerationSettings & { maxTokens: number };
+  profiles: ProfileBook;
 }
 
 /**
@@ -34,9 +38,19 @@ const U32_MAX = 4_294_967_295;
 /** Rust から受け取った設定を、全項目が揃った形にする。揃っていなければ例外(Rust 側の不具合)。 */
 export function resolveSettings(settings: Settings): ResolvedSettings {
   const { baseUrl, model } = settings.connection ?? {};
-  const { maxTokens } = settings.generation ?? {};
-  if (baseUrl === undefined || model === undefined || maxTokens === undefined) {
+  const generation = settings.generation ?? {};
+  const { maxTokens } = generation;
+  if (
+    baseUrl === undefined ||
+    model === undefined ||
+    maxTokens === undefined ||
+    settings.profiles === undefined
+  ) {
     throw new Error("Rust から受け取った設定に、欠けた項目があります");
   }
-  return { connection: { baseUrl, model }, generation: { maxTokens } };
+  return {
+    connection: { baseUrl, model },
+    generation: { ...generation, maxTokens },
+    profiles: settings.profiles,
+  };
 }

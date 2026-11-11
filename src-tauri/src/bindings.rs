@@ -19,6 +19,13 @@ pub fn builder() -> Builder<tauri::Wry> {
         .disable_serde_phases()
         .commands(collect_commands![
             commands::app::app_info,
+            commands::profiles::models_list,
+            commands::profiles::profiles_add,
+            commands::profiles::profiles_get,
+            commands::profiles::profiles_remove,
+            commands::profiles::profiles_select_model,
+            commands::profiles::profiles_set_active,
+            commands::profiles::profiles_update,
             commands::secrets::secret_clear,
             commands::secrets::secret_set,
             commands::secrets::secret_status,

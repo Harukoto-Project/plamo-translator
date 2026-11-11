@@ -1,8 +1,9 @@
 import { useTranslation } from "react-i18next";
-import { ConnectionDialog } from "@/components/settings/connection-dialog";
+import { ModelSelect } from "@/components/layout/model-select";
+import { SettingsDialog } from "@/components/settings/settings-dialog";
 import { useAppInfo } from "@/hooks/use-app-info";
 
-/** 窓の上端。アプリ名とバージョン、全画面で共通の操作(接続設定)を置く。 */
+/** 窓の上端。アプリ名とバージョン、モデルの選択、設定を置く。 */
 export function AppHeader() {
   const { t } = useTranslation();
   const { data: appInfo } = useAppInfo();
@@ -17,7 +18,10 @@ export function AppHeader() {
           </p>
         )}
       </div>
-      <ConnectionDialog />
+      <div className="flex min-w-0 items-center gap-2">
+        <ModelSelect />
+        <SettingsDialog />
+      </div>
     </header>
   );
 }

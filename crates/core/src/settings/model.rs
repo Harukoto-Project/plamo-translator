@@ -3,9 +3,9 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use super::url::validate_base_url;
 use crate::api::Connection;
 use crate::error::AppError;
+use crate::profiles::ProfileBook;
 
 /// 接続先のURLの初期値。vLLM(PLaMo公式の動かし方)に合わせる。
 pub const DEFAULT_BASE_URL: &str = "http://localhost:8000/v1";
@@ -63,18 +63,32 @@ impl Default for GenerationSettings {
 }
 
 /// 保存する設定のすべて。
+///
+/// `connection` は、使用中プロファイルのURLとモデルを書き戻した複製。
+/// 接続先の正は `profiles`。`connection` の名前と型は、以前の保存と読み手のために残す。
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
     pub connection: ConnectionSettings,
     pub generation: GenerationSettings,
+    pub profiles: ProfileBook,
 }
 
 impl Settings {
-    /// 検査して、保存する形(URLの空白や末尾のスラッシュを除いたもの)にする。
+    /// 使用中プロファイルのURLとモデルを `connection` に写す。
+    pub fn sync_connection(&mut self) {
+        if let Some(active) = self.profiles.active() {
+            self.connection.base_url.clone_from(&active.base_url);
+            self.connection.model.clone_from(&active.model);
+        }
+    }
+
+    /// 検査して、保存する形にする。
+    ///
+    /// プロファイルのURL・名前を整え、`connection` は使用中プロファイルから作り直す。
     pub fn validated(mut self) -> Result<Self, AppError> {
-        self.connection.base_url = validate_base_url(&self.connection.base_url)?;
-        self.connection.model = self.connection.model.trim().to_owned();
+        self.profiles = self.profiles.validated()?;
+        self.sync_connection();
         if !(1..=MAX_MAX_TOKENS).contains(&self.generation.max_tokens) {
             return Err(AppError::InvalidMaxTokens);
         }
@@ -87,6 +101,14 @@ mod tests {
     use super::*;
     use crate::error::UrlProblem;
 
+    fn with_active(
+        mut profile_edit: impl FnMut(&mut crate::profiles::ConnectionProfile),
+    ) -> Settings {
+        let mut settings = Settings::default();
+        profile_edit(&mut settings.profiles.profiles[0]);
+        settings
+    }
+
     #[test]
     fn the_defaults_are_valid_and_point_at_vllm() {
         let settings = Settings::default().validated().unwrap();
@@ -94,49 +116,38 @@ mod tests {
         assert_eq!(settings.connection.base_url, "http://localhost:8000/v1");
         assert_eq!(settings.connection.model, "pfnet/plamo-2-translate");
         assert_eq!(settings.generation.max_tokens, 1024);
+        assert_eq!(settings.profiles.active().unwrap().id, "default");
     }
 
     #[test]
-    fn validation_normalizes_the_url_and_the_model() {
-        let settings = Settings {
-            connection: ConnectionSettings {
-                base_url: " http://localhost:1234/v1/ ".into(),
-                model: "  m  ".into(),
-            },
-            ..Settings::default()
-        }
+    fn validation_normalizes_the_active_profile_into_connection() {
+        let settings = with_active(|profile| {
+            profile.base_url = " http://localhost:1234/v1/ ".into();
+            profile.model = "  m  ".into();
+        })
         .validated()
         .unwrap();
 
+        assert_eq!(
+            settings.profiles.active().unwrap().base_url,
+            "http://localhost:1234/v1"
+        );
         assert_eq!(settings.connection.base_url, "http://localhost:1234/v1");
         assert_eq!(settings.connection.model, "m");
     }
 
     #[test]
     fn a_blank_model_is_allowed() {
-        let settings = Settings {
-            connection: ConnectionSettings {
-                model: "   ".into(),
-                ..ConnectionSettings::default()
-            },
-            ..Settings::default()
-        }
-        .validated()
-        .unwrap();
+        let settings = with_active(|profile| profile.model = "   ".into())
+            .validated()
+            .unwrap();
 
         assert_eq!(settings.connection.model, "");
     }
 
     #[test]
     fn a_bad_url_is_rejected_with_the_reason() {
-        let result = Settings {
-            connection: ConnectionSettings {
-                base_url: "localhost".into(),
-                ..ConnectionSettings::default()
-            },
-            ..Settings::default()
-        }
-        .validated();
+        let result = with_active(|profile| profile.base_url = "localhost".into()).validated();
 
         assert_eq!(
             result.unwrap_err(),

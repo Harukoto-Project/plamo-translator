@@ -6,15 +6,38 @@ import { invoke as __TAURI_INVOKE, Channel } from "@tauri-apps/api/core";
 export const commands = {
 	/**  アプリ名とバージョンを返す。 */
 	appInfo: () => __TAURI_INVOKE<AppInfo>("app_info"),
-	/**  APIキーを削除する。 */
-	secretClear: () => typedError<KeyStatus, AppError>(__TAURI_INVOKE("secret_clear")),
-	/**  APIキーを設定する(空なら削除)。設定後の状態を返す。 */
-	secretSet: (value: string) => typedError<KeyStatus, AppError>(__TAURI_INVOKE("secret_set", { value })),
-	/**  APIキーの状態(未設定・保存済み)。 */
-	secretStatus: () => typedError<KeyStatus, AppError>(__TAURI_INVOKE("secret_status")),
+	/**
+	 *  保存済みのプロファイルの `/models` から、モデルIDの一覧を返す。
+	 * 
+	 *  保存済みのURLとキーで問い合わせる。キーの値は返さない。
+	 */
+	modelsList: (profileId: string) => typedError<string[], AppError>(__TAURI_INVOKE("models_list", { profileId })),
+	/**  雛形(vLLM・llama.cpp・LM Studio・Ollama・カスタム)から新しいプロファイルを追加する。 */
+	profilesAdd: (preset: ProfilePreset) => typedError<ProfileAdded, AppError>(__TAURI_INVOKE("profiles_add", { preset })),
+	/**  プロファイルの一覧と、使用中のプロファイル。キーは含まない。 */
+	profilesGet: () => typedError<ProfileBook, AppError>(__TAURI_INVOKE("profiles_get")),
+	/**  プロファイルを削除する(APIキーも消える)。最後の1件は削除できない。 */
+	profilesRemove: (profileId: string) => typedError<ProfileBook, AppError>(__TAURI_INVOKE("profiles_remove", { profileId })),
+	/**  プロファイルのモデルを選び、そのプロファイルを使用中にする。空ならサーバーの既定。 */
+	profilesSelectModel: (profileId: string, model: string | null) => typedError<ProfileBook, AppError>(__TAURI_INVOKE("profiles_select_model", { profileId, model })),
+	/**  使用中のプロファイルを切り替える。 */
+	profilesSetActive: (profileId: string) => typedError<ProfileBook, AppError>(__TAURI_INVOKE("profiles_set_active", { profileId })),
+	/**  既存のプロファイルを更新する。入力を検査し、更新後の一覧を返す。 */
+	profilesUpdate: (profile: ConnectionProfile) => typedError<ProfileBook, AppError>(__TAURI_INVOKE("profiles_update", { profile })),
+	/**  プロファイルのAPIキーを削除する。 */
+	secretClear: (profileId: string) => typedError<KeyStatus, AppError>(__TAURI_INVOKE("secret_clear", { profileId })),
+	/**  プロファイルのAPIキーを設定する(空なら削除)。設定後の状態を返す。 */
+	secretSet: (profileId: string, value: string) => typedError<KeyStatus, AppError>(__TAURI_INVOKE("secret_set", { profileId, value })),
+	/**  プロファイルのAPIキーの状態(未設定・保存済み・未保存)。 */
+	secretStatus: (profileId: string) => typedError<KeyStatus, AppError>(__TAURI_INVOKE("secret_status", { profileId })),
 	/**  保存されている設定。 */
 	settingsGet: () => typedError<Settings, AppError>(__TAURI_INVOKE("settings_get")),
-	/**  設定を検査して保存する。保存した内容(URLなどを整えたもの)を返す。 */
+	/**
+	 *  生成の設定(`generation`)だけを検査して保存する。
+	 * 
+	 *  接続先はプロファイルのコマンドが更新する。引数の `connection` と `profiles` は使わない。
+	 *  知らない項目と、使用中プロファイルから書き戻した `connection` は残す。
+	 */
 	settingsUpdate: (settings: Settings) => typedError<Settings, AppError>(__TAURI_INVOKE("settings_update", { settings })),
 	/**  実行中の翻訳を中断する。完了済み・存在しないIDでも何も起きない。 */
 	translateCancel: (requestId: string) => __TAURI_INVOKE<void>("translate_cancel", { requestId }),
@@ -49,6 +72,14 @@ export type AppError =
 { kind: "emptyText" } | 
 /**  最大出力トークン数が正しくない */
 { kind: "invalidMaxTokens" } | 
+/**  接続先の名前が正しくない */
+{ kind: "invalidProfileName"; reason: NameProblem } | 
+/**  接続先が見つからない */
+{ kind: "profileNotFound" } | 
+/**  同じIDの接続先が既にある */
+{ kind: "duplicateProfile" } | 
+/**  最後の1件の接続先は削除できない */
+{ kind: "lastProfile" } | 
 /**  設定ファイルを読み込めなかった */
 { kind: "settingsReadFailed"; detail: string } | 
 /**  設定ファイルを書き込めなかった */
@@ -66,6 +97,22 @@ export type AppInfo = {
 	version: string,
 };
 
+/**
+ *  名前を付けたサーバー。
+ * 
+ *  APIキーはフィールドに持たない。OSの資格情報ストアに、`id` から決まるアカウント名で保存する
+ *  (→ [`crate::profiles::ProfileKeys`])。プロファイルをシリアライズしてもキーは書き出されない。
+ */
+export type ConnectionProfile = {
+	/**  名前を変えても変わらない。キーなどがこのIDを参照する */
+	id: string,
+	name: string,
+	/**  APIのベースURL(例: `http://localhost:8000/v1`) */
+	baseUrl: string,
+	/**  このサーバーで使うモデル。空ならサーバーの既定に任せる */
+	model: string,
+};
+
 /**  接続先。APIキーは含まない(OSの資格情報ストアにある)。 */
 export type ConnectionSettings = {
 	/**  APIのベースURL(例: `http://localhost:8000/v1`) */
@@ -80,12 +127,14 @@ export type GenerationSettings = {
 	maxTokens?: number,
 };
 
-/**  キーの状態。設定画面の表示用。 */
+/**  キーの状態。設定画面の表示用。値そのものは含まない。 */
 export type KeyStatus = 
 /**  キーは設定されていない */
 "unset" | 
 /**  OSの資格情報ストアに保存されている */
-"saved";
+"saved" | 
+/**  ストアに書けず、メモリにだけある。アプリを終了すると失われる */
+"unsaved";
 
 /**
  *  翻訳の言語。`auto`(自動判定)は含めない。画面で解決してからRustに渡す。
@@ -95,6 +144,36 @@ export type KeyStatus =
 export type Lang = "ja" | "en" | 
 /**  公式の検証範囲外。品質は「そこそこ」(ユーザーが確認済み) */
 "ko";
+
+/**  接続先の名前が正しくない理由。 */
+export type NameProblem = 
+/**  空 */
+"empty" | 
+/**  長すぎる */
+"tooLong";
+
+/**  プロファイルを追加した結果。画面が、追加したものを開けるようにIDを添える。 */
+export type ProfileAdded = {
+	book: ProfileBook,
+	id: string,
+};
+
+/**  保存されたプロファイルの一覧。常に1件以上あり、`active_id` はその中のどれかを指す。 */
+export type ProfileBook = {
+	profiles: ConnectionProfile[],
+	/**  使用中のプロファイルのID */
+	activeId: string,
+};
+
+/**
+ *  追加するプロファイルの種類。名前とURLの初期値だけが違い、追加後は自由に編集できる。
+ * 
+ *  通信の仕方はどれも同じ(OpenAI互換の `/completions` と `/models`)。
+ *  サーバーごとの差は、ここでは吸収しない。
+ */
+export type ProfilePreset = "vllm" | "llamaCpp" | "lmStudio" | "ollama" | 
+/**  上のどれでもないサーバー。URLは書き換える前提で、vLLMと同じ初期値にしておく */
+"custom";
 
 /**  1回の翻訳の出力の統計。 */
 export type ReplyStats = {
@@ -106,10 +185,16 @@ export type ReplyStats = {
 	estimated: boolean,
 };
 
-/**  保存する設定のすべて。 */
+/**
+ *  保存する設定のすべて。
+ * 
+ *  `connection` は、使用中プロファイルのURLとモデルを書き戻した複製。
+ *  接続先の正は `profiles`。`connection` の名前と型は、以前の保存と読み手のために残す。
+ */
 export type Settings = {
 	connection?: ConnectionSettings,
 	generation?: GenerationSettings,
+	profiles?: ProfileBook,
 };
 
 /**  翻訳の進行を伝えるイベント。終わりには必ず `Done` か `Error` のどちらかを1回流す。 */

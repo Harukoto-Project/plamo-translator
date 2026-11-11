@@ -1,7 +1,6 @@
 //! 翻訳のコマンド。
 
 use plamo_translator_core::error::AppError;
-use plamo_translator_core::secrets::read_key;
 use plamo_translator_core::translate::{self, TranslateEvent, TranslateJob, TranslateRequest};
 use tauri::State;
 use tauri::ipc::Channel;
@@ -24,22 +23,20 @@ pub async fn translate_start(
         let _ = on_event.send(event);
     };
 
-    // 接続先と生成の設定は、リクエストのたびに読む(設定の変更がすぐ反映される)
-    let settings = state.settings.clone();
-    let secrets = state.secrets.clone();
-    let loaded = blocking(move || Ok((settings.load()?, read_key(secrets.as_ref())))).await;
+    // 使用中のプロファイルと生成の設定は、リクエストのたびに読む(設定の変更がすぐ反映される)
+    let profiles = state.profiles.clone();
+    let loaded = blocking(move || profiles.active_connection()).await;
 
     match loaded {
-        Ok((settings, api_key)) => {
-            let connection = settings.connection.connection(api_key);
+        Ok(active) => {
             let job = TranslateJob {
                 request_id: &request.request_id,
                 source: request.source_lang,
                 target: request.target_lang,
                 text: &request.text,
-                max_tokens: settings.generation.max_tokens,
+                max_tokens: active.max_tokens,
             };
-            translate::run(&state.api, &connection, job, emit).await;
+            translate::run(&state.api, &active.connection, job, emit).await;
         }
         Err(error) => emit(TranslateEvent::Error { error }),
     }

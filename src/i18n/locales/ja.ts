@@ -42,33 +42,62 @@ export const ja = {
       delimiterRemoved:
         "原文に含まれていた「<|plamo:op|>」は、モデルへの指示と区別できないため取り除きました。",
       outputTruncated:
-        "最大出力トークン数に達したため、訳文が途中で切れている可能性があります。接続設定で上限を増やしてください。",
+        "最大出力トークン数に達したため、訳文が途中で切れている可能性があります。設定で上限を増やしてください。",
     },
     errorTitle: "翻訳できませんでした",
   },
   settings: {
-    open: "接続設定",
-    title: "接続設定",
+    open: "設定",
+    title: "設定",
     description:
-      "PLaMo翻訳モデルを動かしているサーバーを指定します。OpenAI互換の /completions に対応したサーバー(vLLM・llama.cpp・LM Studio・Ollama)が使えます。",
+      "接続先を登録して切り替えます。APIキーはOSの資格情報ストアに保存され、画面には戻りません。",
+    profiles: "接続先",
+    active: "使用中",
+    use: "使用する",
+    add: "追加",
+    preset: "追加する種類",
+    delete: "削除",
+    deleteConfirm: "削除する",
+    deleteCancel: "やめる",
+    lastProfile: "最後の接続先は削除できません。",
+    name: "名前",
     baseUrl: "接続先URL",
-    baseUrlHint: "例: http://localhost:8000/v1(vLLM)",
+    baseUrlHint: "例: http://localhost:8000/v1",
     model: "モデル名",
     modelHint: "空にすると、サーバーの既定のモデルを使います。",
+    modelFetch: "モデル一覧を取得",
+    modelFetching: "取得しています…",
+    modelEmpty: "モデルが見つかりませんでした。名前を入力してください。",
+    modelUnavailable:
+      "モデル一覧を取得できませんでした。名前を入力してください。",
+    modelPick: "取得したモデル",
+    modelServerDefault: "サーバーの既定",
+    modelSavedHint:
+      "一覧は、保存済みのURLとAPIキーで取得します。変えたあとは、一度保存してから取得してください。",
     apiKey: "APIキー",
     apiKeyHint: "不要なサーバーなら空のままにします。",
     apiKeySaved: "保存済み(入力すると置き換えます)",
     apiKeyClear: "削除する",
     apiKeyWillClear: "保存すると削除されます",
     apiKeyUndoClear: "削除を取り消す",
+    apiKeyUnsaved:
+      "キーはメモリにだけあります。OSの資格情報ストアに書けなかったため、アプリを終了すると失われます。",
     maxTokens: "最大出力トークン数",
-    maxTokensHint: "1回の翻訳で出力するトークン数の上限です。",
+    maxTokensHint:
+      "1回の翻訳で出力するトークン数の上限です。すべての接続先で共通です。",
     save: "保存",
     saving: "保存しています…",
     cancel: "キャンセル",
     loading: "読み込んでいます…",
     loadFailed: "設定を読み込めませんでした",
     version: "バージョン {{version}}",
+    presets: {
+      vllm: "vLLM",
+      llamaCpp: "llama.cpp",
+      lmStudio: "LM Studio",
+      ollama: "Ollama",
+      custom: "カスタム",
+    },
   },
   // 自動更新。リリースノートは出さない(ビルド時点の本文で固定され、後から直しても届かない)
   update: {
@@ -87,7 +116,7 @@ export const ja = {
   // Rust が返すエラーの種別ごとの文言(`lib/app-error.ts` が引く)
   errors: {
     connectionFailed:
-      "サーバーに接続できません({{url}})。サーバーが起動しているか、接続設定のURLを確認してください。",
+      "サーバーに接続できません({{url}})。サーバーが起動しているか、設定のURLを確認してください。",
     invalidUrl: {
       empty: "URLを入力してください。",
       containsWhitespace: "URLに空白を含めることはできません。",
@@ -106,6 +135,13 @@ export const ja = {
     invalidResponse: "サーバーの応答を解釈できませんでした: {{detail}}",
     emptyText: "翻訳する文章を入力してください。",
     invalidMaxTokens: "最大出力トークン数は、1以上の整数で入力してください。",
+    invalidProfileName: {
+      empty: "接続先の名前を入力してください。",
+      tooLong: "接続先の名前は60文字以内にしてください。",
+    },
+    profileNotFound: "接続先が見つかりません。",
+    duplicateProfile: "同じ接続先が既にあります。",
+    lastProfile: "最後の接続先は削除できません。",
     settingsReadFailed: "設定ファイルを読み込めませんでした: {{detail}}",
     settingsWriteFailed: "設定ファイルを保存できませんでした: {{detail}}",
     settingsVersionUnsupported:

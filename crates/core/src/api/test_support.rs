@@ -67,38 +67,54 @@ pub fn serve_all(responses: Vec<String>) -> (String, thread::JoinHandle<Vec<Stri
 
 /// 1つ目のリクエストには `first` を返し、2つ目は切断されるまで待つ。
 /// 2つ目が来なければ数秒で終わる(中断が送信前に効いた場合)。
+///
+/// 待ち受けは最初から非同期にする。応答のあとで切り替えると、Windowsでは
+/// 待ち行列に入った次の接続が切られ、クライアントが送信エラーになる。
 pub fn serve_one_then_hang(first: String) -> (String, thread::JoinHandle<()>) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    listener.set_nonblocking(true).unwrap();
     let url = format!("http://{}/v1", listener.local_addr().unwrap());
     let handle = thread::spawn(move || {
-        let (mut socket, _) = listener.accept().unwrap();
+        let Some(mut socket) = accept_for(&listener, Duration::from_secs(5)) else {
+            return;
+        };
         let _ = read_request(&mut socket);
         let _ = socket.write_all(first.as_bytes());
         drop(socket);
 
-        let _ = listener.set_nonblocking(true);
-        let started = std::time::Instant::now();
-        loop {
-            match listener.accept() {
-                Ok((mut socket, _)) => {
-                    let _ = socket.set_read_timeout(Some(Duration::from_secs(5)));
-                    let _ = read_request(&mut socket);
-                    let _ = socket.set_read_timeout(Some(Duration::from_secs(5)));
-                    let mut buf = [0u8; 64];
-                    let _ = socket.read(&mut buf);
-                    break;
-                }
-                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
-                    if started.elapsed() > Duration::from_secs(5) {
-                        break;
-                    }
-                    thread::sleep(Duration::from_millis(20));
-                }
-                Err(_) => break,
-            }
-        }
+        let Some(mut socket) = accept_for(&listener, Duration::from_secs(5)) else {
+            return;
+        };
+        let _ = socket.set_read_timeout(Some(Duration::from_secs(5)));
+        let _ = read_request(&mut socket);
+        let mut buf = [0u8; 64];
+        let _ = socket.read(&mut buf);
     });
     (url, handle)
+}
+
+/// 非同期の待ち受けで、期限まで接続を待つ。受け取ったソケットは同期読み取りに戻す。
+fn accept_for(listener: &TcpListener, timeout: Duration) -> Option<TcpStream> {
+    let started = std::time::Instant::now();
+    loop {
+        match listener.accept() {
+            Ok((socket, _)) => {
+                socket.set_nonblocking(false).unwrap();
+                return Some(socket);
+            }
+            Err(error)
+                if error.kind() == std::io::ErrorKind::WouldBlock
+                    || error.kind() == std::io::ErrorKind::Interrupted
+                    || error.kind() == std::io::ErrorKind::ConnectionReset =>
+            {
+                if started.elapsed() > timeout {
+                    return None;
+                }
+                thread::sleep(Duration::from_millis(10));
+            }
+            Err(_) => return None,
+        }
+    }
 }
 
 /// リクエストを受けて `initial` だけ返したあと、クライアントが切断するまで接続を保つ。

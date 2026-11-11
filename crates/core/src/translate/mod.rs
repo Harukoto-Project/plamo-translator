@@ -537,7 +537,7 @@ mod tests {
                 .iter()
                 .any(|event| matches!(event, TranslateEvent::ChunkDone { index: 1 }))
         );
-        assert_eq!(events.last(), Some(&TranslateEvent::Done));
+        assert_eq!(events.last(), Some(&TranslateEvent::Done), "{events:?}");
         assert_eq!(
             events
                 .iter()

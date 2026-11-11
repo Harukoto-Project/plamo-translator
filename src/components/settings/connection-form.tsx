@@ -3,12 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { type KeyChange, useSaveConnection } from "@/hooks/use-settings";
 import { describeAppError } from "@/lib/app-error";
@@ -87,8 +82,8 @@ export function ConnectionForm({
             onChange={(event) => setBaseUrl(event.target.value)}
             spellCheck={false}
             autoComplete="off"
+            placeholder={t("settings.baseUrlHint")}
           />
-          <FieldDescription>{t("settings.baseUrlHint")}</FieldDescription>
         </Field>
 
         <Field>
@@ -99,8 +94,8 @@ export function ConnectionForm({
             onChange={(event) => setModel(event.target.value)}
             spellCheck={false}
             autoComplete="off"
+            placeholder={t("settings.modelHint")}
           />
-          <FieldDescription>{t("settings.modelHint")}</FieldDescription>
         </Field>
 
         <Field>
@@ -110,10 +105,11 @@ export function ConnectionForm({
             type="password"
             value={apiKey}
             onChange={(event) => setApiKey(event.target.value)}
-            placeholder={keySaved ? t("settings.apiKeySaved") : undefined}
+            placeholder={
+              keySaved ? t("settings.apiKeySaved") : t("settings.apiKeyHint")
+            }
             autoComplete="off"
           />
-          <FieldDescription>{t("settings.apiKeyHint")}</FieldDescription>
           {keySaved && apiKey === "" && (
             <div className="flex items-center gap-2">
               {clearKey && (
@@ -144,8 +140,8 @@ export function ConnectionForm({
             inputMode="numeric"
             value={maxTokens}
             onChange={(event) => setMaxTokens(event.target.value)}
+            placeholder={t("settings.maxTokensHint")}
           />
-          <FieldDescription>{t("settings.maxTokensHint")}</FieldDescription>
         </Field>
       </FieldGroup>
 

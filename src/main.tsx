@@ -3,6 +3,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "@/App";
 import { ThemeProvider } from "@/components/common/theme-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import "@/i18n";
 import "@/styles/globals.css";
 
@@ -17,7 +18,9 @@ createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <App />
+        <TooltipProvider>
+          <App />
+        </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>
   </StrictMode>,

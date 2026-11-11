@@ -1,18 +1,16 @@
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { ConnectionDialog } from "@/components/settings/connection-dialog";
+import { AppHeader } from "@/components/layout/app-header";
 import { LanguageBar } from "@/components/translate/language-bar";
 import { SourcePane } from "@/components/translate/source-pane";
 import { TargetPane } from "@/components/translate/target-pane";
-import { TranslateNotices } from "@/components/translate/translate-notices";
-import { useAppInfo } from "@/hooks/use-app-info";
 import { useLanguageSelection } from "@/hooks/use-language-selection";
 import { useTranslator } from "@/hooks/use-translator";
 
-/** 翻訳画面。原文と訳文の2ペイン(広い幅では左右、狭い幅では上下)。 */
+/**
+ * 翻訳画面。原文と訳文を1枚の紙面に並べ、中央の綴じ目で分ける。
+ * 左右 / 上下は、窓ではなく紙面の幅(コンテナクエリ)で切り替える。
+ */
 export function TranslatePage() {
-  const { t } = useTranslation();
-  const { data: appInfo } = useAppInfo();
   const [sourceText, setSourceText] = useState("");
   const language = useLanguageSelection(sourceText);
   const translator = useTranslator();
@@ -38,45 +36,35 @@ export function TranslatePage() {
   };
 
   return (
-    <main className="mx-auto flex min-h-svh w-full max-w-6xl flex-col gap-4 p-4 sm:p-6">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-col">
-          <h1 className="font-serif text-2xl">{t("app.name")}</h1>
-          {appInfo && (
-            <p className="text-xs text-muted-foreground">
-              {appInfo.name} v{appInfo.version}
-            </p>
-          )}
+    <div className="flex min-h-svh flex-col bg-frame">
+      <AppHeader />
+      <main className="mx-auto flex w-full max-w-6xl min-h-0 flex-1 flex-col px-3 pb-3 sm:px-6 sm:pb-6">
+        <div className="@container flex min-h-104 flex-1 flex-col overflow-hidden rounded-xl border bg-sheet shadow-xs max-h-96 mt-6">
+          <LanguageBar
+            sourceChoice={language.choice}
+            targetLang={language.shown.target}
+            detected={language.detected}
+            onSourceChange={language.selectSource}
+            onTargetChange={language.selectTarget}
+            onSwap={swap}
+            disabled={running}
+          />
+          <div className="flex min-h-0 flex-1 flex-col @3xl:flex-row">
+            <SourcePane
+              value={sourceText}
+              onChange={setSourceText}
+              running={running}
+              onTranslate={translate}
+              onStop={translator.stop}
+            />
+            <TargetPane
+              state={state}
+              retranslateDisabled={sourceText.trim() === ""}
+              onRetranslate={translate}
+            />
+          </div>
         </div>
-        <ConnectionDialog />
-      </header>
-
-      <LanguageBar
-        sourceChoice={language.choice}
-        targetLang={language.shown.target}
-        detected={language.detected}
-        onSourceChange={language.selectSource}
-        onTargetChange={language.selectTarget}
-        onSwap={swap}
-        disabled={running}
-      />
-
-      <div className="flex flex-1 flex-col gap-4 md:flex-row">
-        <SourcePane
-          value={sourceText}
-          onChange={setSourceText}
-          running={running}
-          onTranslate={translate}
-          onStop={translator.stop}
-        />
-        <TargetPane
-          state={state}
-          retranslateDisabled={sourceText.trim() === ""}
-          onRetranslate={translate}
-        />
-      </div>
-
-      <TranslateNotices state={state} />
-    </main>
+      </main>
+    </div>
   );
 }

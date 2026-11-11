@@ -1,6 +1,8 @@
+import { SquareIcon } from "lucide-react";
 import { useId } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { isMacPlatform, shouldTranslateOnKeyDown } from "@/lib/translate-keys";
@@ -13,7 +15,7 @@ interface SourcePaneProps {
   onStop: () => void;
 }
 
-/** 原文の入力欄と、翻訳・停止のボタン。 */
+/** 紙面の左(狭い幅では上)。原文の入力欄と、翻訳・停止のボタン。 */
 export function SourcePane({
   value,
   onChange,
@@ -23,16 +25,19 @@ export function SourcePane({
 }: SourcePaneProps) {
   const { t } = useTranslation();
   const id = useId();
-  const modifier = isMacPlatform(navigator.platform) ? "⌘" : "Ctrl";
+  const mac = isMacPlatform(navigator.platform);
+  const modifier = mac ? "⌘" : "Ctrl";
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col gap-2">
-      <Label htmlFor={id}>{t("translate.sourceLabel")}</Label>
+    <section className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <Label htmlFor={id} className="sr-only">
+        {t("translate.sourceLabel")}
+      </Label>
       <Textarea
         id={id}
         value={value}
         placeholder={t("translate.sourcePlaceholder")}
-        className="min-h-48 flex-1 resize-none"
+        className="min-h-28 flex-1 resize-none rounded-none border-0 bg-transparent px-4.5 py-3 text-base leading-relaxed field-sizing-fixed md:text-base dark:bg-transparent"
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={(event) => {
           if (shouldTranslateOnKeyDown(event.nativeEvent)) {
@@ -41,17 +46,30 @@ export function SourcePane({
           }
         }}
       />
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-muted-foreground">
-          {t("translate.shortcut", { modifier })}
-        </p>
+      <div className="flex h-13 shrink-0 items-center justify-end gap-2 px-3">
         {running ? (
-          <Button variant="outline" onClick={onStop}>
+          <Button variant="outline" size="lg" onClick={onStop}>
+            <SquareIcon aria-hidden="true" className="fill-current" />
             {t("translate.stop")}
           </Button>
         ) : (
-          <Button onClick={onTranslate} disabled={value.trim() === ""}>
+          <Button
+            size="lg"
+            className="pr-1.5"
+            onClick={onTranslate}
+            disabled={value.trim() === ""}
+            aria-keyshortcuts={mac ? "Meta+Enter" : "Control+Enter"}
+            title={t("translate.shortcut", { modifier })}
+          >
             {t("translate.translate")}
+            <KbdGroup aria-hidden="true" className="ml-1">
+              <Kbd className="bg-primary-foreground/15 text-primary-foreground">
+                {modifier}
+              </Kbd>
+              <Kbd className="bg-primary-foreground/15 text-primary-foreground">
+                Enter
+              </Kbd>
+            </KbdGroup>
           </Button>
         )}
       </div>

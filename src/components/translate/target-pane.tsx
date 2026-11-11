@@ -1,12 +1,13 @@
 import { CheckIcon, CopyIcon, RotateCcwIcon } from "lucide-react";
 import { useId } from "react";
 import { useTranslation } from "react-i18next";
+import { TranslateNotices } from "@/components/translate/translate-notices";
+import { TranslateStatus } from "@/components/translate/translate-status";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCopy } from "@/hooks/use-copy";
 import type { TranslateState } from "@/lib/translate-state";
-import { formatSpeed, tokensPerSecond } from "@/lib/translate-stats";
 
 interface TargetPaneProps {
   state: TranslateState;
@@ -15,7 +16,10 @@ interface TargetPaneProps {
   onRetranslate: () => void;
 }
 
-/** 訳文の表示欄。翻訳の進み具合・出力速度と、コピー・再翻訳の操作も出す。 */
+/**
+ * 紙面の右(狭い幅では下)。訳文は明朝体で組み、入力欄の原文と見分けられるようにする。
+ * エラー・警告、進み具合と出力速度、コピー・再翻訳の操作も出す。
+ */
 export function TargetPane({
   state,
   retranslateDisabled,
@@ -24,35 +28,36 @@ export function TargetPane({
   const { t } = useTranslation();
   const id = useId();
   const { status: copyStatus, copy } = useCopy();
-
-  const speed = state.stats ? tokensPerSecond(state.stats) : undefined;
-  const statsText =
-    state.stats && speed !== undefined
-      ? t(
-          state.stats.estimated
-            ? "translate.statsEstimated"
-            : "translate.statsExact",
-          { speed: formatSpeed(speed) },
-        )
-      : null;
-
   const finished = state.status !== "idle" && state.status !== "running";
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col gap-2">
-      <Label htmlFor={id}>{t("translate.targetLabel")}</Label>
+    <section className="flex min-h-0 min-w-0 flex-1 flex-col border-t @3xl:border-t-0 @3xl:border-l">
+      <Label htmlFor={id} className="sr-only">
+        {t("translate.targetLabel")}
+      </Label>
       <Textarea
         id={id}
         readOnly
         value={state.text}
         placeholder={t("translate.targetPlaceholder")}
-        className="min-h-48 flex-1 resize-none bg-muted/30"
+        className="min-h-28 flex-1 resize-none rounded-none border-0 bg-transparent px-4.5 py-3 font-serif text-[1.0625rem] leading-[1.8] field-sizing-fixed md:text-[1.0625rem] dark:bg-transparent @3xl:pl-9.5"
       />
-      <div className="flex min-h-9 flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
+      <TranslateNotices state={state} className="px-4.5 pb-2 @3xl:pl-9.5" />
+      <div className="flex h-13 shrink-0 items-center justify-between gap-2 pr-3 pl-4.5 @3xl:pl-9.5">
+        <TranslateStatus state={state} />
+        <div className="flex shrink-0 items-center gap-1">
+          {finished && (
+            <Button
+              variant="ghost"
+              disabled={retranslateDisabled}
+              onClick={onRetranslate}
+            >
+              <RotateCcwIcon aria-hidden="true" />
+              {t("translate.retranslate")}
+            </Button>
+          )}
           <Button
-            variant="outline"
-            size="sm"
+            variant="ghost"
             disabled={state.text === ""}
             onClick={() => void copy(state.text)}
           >
@@ -67,23 +72,6 @@ export function TargetPane({
                 ? t("translate.copyFailed")
                 : t("translate.copy")}
           </Button>
-          {finished && (
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={retranslateDisabled}
-              onClick={onRetranslate}
-            >
-              <RotateCcwIcon aria-hidden="true" />
-              {t("translate.retranslate")}
-            </Button>
-          )}
-        </div>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <p role="status">
-            {state.status !== "idle" && t(`translate.status.${state.status}`)}
-          </p>
-          {statsText && <p>{statsText}</p>}
         </div>
       </div>
     </section>

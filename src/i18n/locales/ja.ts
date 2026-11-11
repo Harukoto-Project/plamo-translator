@@ -56,8 +56,7 @@ export const ja = {
     model: "モデル名",
     modelHint: "空にすると、サーバーの既定のモデルを使います。",
     apiKey: "APIキー",
-    apiKeyHint:
-      "不要なサーバーなら空のままにします。OSの資格情報ストアに保存され、画面には表示されません。",
+    apiKeyHint: "不要なサーバーなら空のままにします。",
     apiKeySaved: "保存済み(入力すると置き換えます)",
     apiKeyClear: "削除する",
     apiKeyWillClear: "保存すると削除されます",

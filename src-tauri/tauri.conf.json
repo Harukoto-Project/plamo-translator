@@ -14,10 +14,10 @@
       {
         "label": "main",
         "title": "PLaMo Translator",
-        "width": 1000,
-        "height": 720,
-        "minWidth": 640,
-        "minHeight": 480
+        "width": 900,
+        "height": 600,
+        "minWidth": 900,
+        "minHeight": 600
       }
     ],
     "security": {

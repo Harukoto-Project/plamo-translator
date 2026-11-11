@@ -7,6 +7,16 @@ export const commands = {
 	/**  アプリ名とバージョンを返す。 */
 	appInfo: () => __TAURI_INVOKE<AppInfo>("app_info"),
 	/**
+	 *  ドロップされたファイルの中身(base64)からテキストを取り出す。
+	 *  種類は中身で判定する。元ファイルは保存しない。
+	 */
+	importExtract: (data: string) => typedError<ImportedText, AppError>(__TAURI_INVOKE("import_extract", { data })),
+	/**
+	 *  OSのダイアログでファイルを1つ選ばせ、中身のテキストを返す。
+	 *  キャンセルしたときは値なし。元ファイルは保存しない。
+	 */
+	importPickFile: (title: string) => typedError<ImportedText | null, AppError>(__TAURI_INVOKE("import_pick_file", { title })),
+	/**
 	 *  保存済みのプロファイルの `/models` から、モデルIDの一覧を返す。
 	 * 
 	 *  保存済みのURLとキーで問い合わせる。キーの値は返さない。
@@ -91,6 +101,27 @@ export type AppError =
 { kind: "settingsVersionUnsupported"; version: number } | 
 /**  OSの資格情報ストアを利用できない */
 { kind: "secret"; detail: string } | 
+/**  取り込むファイルが空 */
+{ kind: "fileEmpty" } | 
+/**
+ *  ファイルが上限を超えている。`size` と `limit` はバイト数。
+ *  `u32` に収まる(取り込む上限は数十MB)。超える値は `u32::MAX` に切り詰める
+ */
+{ kind: "fileTooLarge"; size: number; limit: number } | 
+/**  UTF-8として読めない */
+{ kind: "fileEncoding" } | 
+/**  テキストでも、テキストを含むPDFでもない */
+{ kind: "fileUnsupported" } | 
+/**  PDFを開けない(暗号化・破損など) */
+{ kind: "pdfUnreadable" } | 
+/**  PDFからテキストを取り出せない(スキャンした画像だけなど) */
+{ kind: "pdfNoText" } | 
+/**  受け取ったファイルのデータが壊れている */
+{ kind: "fileDataInvalid" } | 
+/**  ファイルを読めなかった。`detail` はOSのメッセージ(本文は含めない) */
+{ kind: "fileReadFailed"; detail: string } | 
+/**  一度に複数のファイルは受け取れない */
+{ kind: "fileTooMany" } | 
 /**  想定外の内部エラー */
 { kind: "internal"; detail: string };
 
@@ -130,6 +161,11 @@ export type GenerationSettings = {
 	maxTokens?: number,
 	/**  1ブロックに入れる原文の文字数。長い原文は、この文字数以内の塊に分けて順に翻訳する。 */
 	chunkBudget?: number,
+};
+
+/**  原文欄に展開するテキスト。元ファイルは持たない。 */
+export type ImportedText = {
+	text: string,
 };
 
 /**  キーの状態。設定画面の表示用。値そのものは含まない。 */

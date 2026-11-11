@@ -4,6 +4,7 @@ import { HistorySidebar } from "@/components/sidebar/history-sidebar";
 import { LanguageBar } from "@/components/translate/language-bar";
 import { SourcePane } from "@/components/translate/source-pane";
 import { TargetPane } from "@/components/translate/target-pane";
+import { useFileImport } from "@/hooks/use-file-import";
 import { useLanguageSelection } from "@/hooks/use-language-selection";
 import { useRecordTranslation } from "@/hooks/use-record-translation";
 import { useSettings } from "@/hooks/use-settings";
@@ -29,6 +30,7 @@ export function TranslatePage() {
     state.text,
     setActiveHistoryId,
   );
+  const fileImport = useFileImport(setSourceText, running);
 
   const translate = () => {
     if (running || sourceText.trim() === "") return;
@@ -51,6 +53,7 @@ export function TranslatePage() {
   const swap = () => {
     language.swap();
     if (state.text !== "") {
+      fileImport.clearError();
       setSourceText(state.text);
       translator.reset();
     }
@@ -59,6 +62,7 @@ export function TranslatePage() {
   const startNew = () => {
     if (running) return;
     record.moveOn();
+    fileImport.clearError();
     setSourceText("");
     translator.reset();
     setActiveHistoryId(null);
@@ -68,6 +72,7 @@ export function TranslatePage() {
     if (running) return;
     record.moveOn();
     const entry = await loadHistory(id);
+    fileImport.clearError();
     setSourceText(entry.sourceText);
     language.apply(entry.sourceLang, entry.targetLang);
     translator.load(entry.targetText);
@@ -104,10 +109,18 @@ export function TranslatePage() {
             <div className="flex min-h-0 flex-1 flex-col @3xl:flex-row">
               <SourcePane
                 value={sourceText}
-                onChange={setSourceText}
+                onChange={(value) => {
+                  fileImport.clearError();
+                  setSourceText(value);
+                }}
                 running={running}
                 onTranslate={translate}
                 onStop={translator.stop}
+                importBusy={fileImport.busy}
+                importDragging={fileImport.dragging}
+                importError={fileImport.error}
+                onPickFile={fileImport.pick}
+                dropHandlers={fileImport.dropHandlers}
               />
               <TargetPane
                 state={state}

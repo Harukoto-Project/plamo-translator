@@ -8,6 +8,7 @@ pub mod app_info;
 pub mod error;
 pub mod fs;
 pub mod history;
+pub mod importer;
 pub mod profiles;
 pub mod secrets;
 pub mod settings;

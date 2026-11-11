@@ -1,4 +1,5 @@
 import type { TFunction } from "i18next";
+import { formatByteSize } from "@/lib/format-byte-size";
 import type { AppError } from "@/types/bindings";
 
 /**
@@ -56,6 +57,29 @@ export function describeAppError(error: AppError, t: TFunction): string {
       return t("errors.historyTitleEmpty");
     case "historyTitleTooLong":
       return t("errors.historyTitleTooLong", { max: error.max });
+    case "fileEmpty":
+      return t("errors.fileEmpty");
+    case "fileTooLarge":
+      return t("errors.fileTooLarge", {
+        size: formatByteSize(error.size),
+        limit: formatByteSize(error.limit),
+      });
+    case "fileEncoding":
+      return t("errors.fileEncoding");
+    case "fileUnsupported":
+      return t("errors.fileUnsupported");
+    case "pdfUnreadable":
+      return t("errors.pdfUnreadable");
+    case "pdfNoText":
+      return t("errors.pdfNoText");
+    case "fileDataInvalid":
+      return t("errors.fileDataInvalid");
+    case "fileReadFailed":
+      return error.detail === ""
+        ? t("errors.fileReadFailed")
+        : t("errors.fileReadFailedDetail", { detail: error.detail });
+    case "fileTooMany":
+      return t("errors.fileTooMany");
     case "settingsReadFailed":
       return t("errors.settingsReadFailed", { detail: error.detail });
     case "settingsWriteFailed":

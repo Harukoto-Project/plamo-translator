@@ -47,6 +47,12 @@ export const ja = {
     },
     errorTitle: "翻訳できませんでした",
   },
+  import: {
+    pick: "ファイルを取り込む",
+    busy: "読み込んでいます…",
+    dropHint: "ドロップすると、原文欄に展開します",
+    dialogTitle: "原文にするファイルを選択",
+  },
   settings: {
     open: "設定",
     title: "設定",
@@ -192,6 +198,20 @@ export const ja = {
     historyDeleteFailed: "履歴を削除できませんでした: {{detail}}",
     historyTitleEmpty: "名前を入力してください。",
     historyTitleTooLong: "名前は{{max}}文字以内にしてください。",
+    fileEmpty: "ファイルが空です。",
+    fileTooLarge: "ファイルが大きすぎます({{size}})。上限は{{limit}}です。",
+    fileEncoding:
+      "文字コードをUTF-8として読めませんでした。UTF-8のテキストを指定してください。",
+    fileUnsupported:
+      "対応していないファイルです。UTF-8のテキストか、テキストを含むPDFを指定してください。",
+    pdfUnreadable:
+      "PDFを読み込めませんでした。暗号化されているか、壊れている可能性があります。",
+    pdfNoText:
+      "PDFからテキストを取り出せませんでした。スキャンした画像だけのPDFには対応していません。",
+    fileDataInvalid: "ファイルの内容を読み取れませんでした。",
+    fileReadFailed: "ファイルを読み込めませんでした。",
+    fileReadFailedDetail: "ファイルを読み込めませんでした: {{detail}}",
+    fileTooMany: "一度に取り込めるファイルは1つです。",
     settingsReadFailed: "設定ファイルを読み込めませんでした: {{detail}}",
     settingsWriteFailed: "設定ファイルを保存できませんでした: {{detail}}",
     settingsVersionUnsupported:

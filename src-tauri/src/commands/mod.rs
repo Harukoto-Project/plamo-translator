@@ -2,6 +2,7 @@
 
 pub mod app;
 pub mod history;
+pub mod import;
 pub mod profiles;
 pub mod secrets;
 pub mod settings;

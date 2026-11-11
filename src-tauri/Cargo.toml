@@ -30,6 +30,7 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 plamo-translator-core = { path = "../crates/core" }
 tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
 # `tauri.conf.json`の`plugins`を読み込むマクロ(`generate_context!`)が使う
 serde_json.workspace = true
 specta.workspace = true

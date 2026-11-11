@@ -24,6 +24,8 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::history::history_load,
             commands::history::history_rename,
             commands::history::history_save,
+            commands::import::import_extract,
+            commands::import::import_pick_file,
             commands::profiles::models_list,
             commands::profiles::profiles_add,
             commands::profiles::profiles_get,

@@ -7,6 +7,16 @@ export const commands = {
 	/**  アプリ名とバージョンを返す。 */
 	appInfo: () => __TAURI_INVOKE<AppInfo>("app_info"),
 	/**
+	 *  ドロップされたファイルの中身(base64)からテキストを取り出す。
+	 *  種類は中身で判定する。元ファイルは保存しない。
+	 */
+	importExtract: (data: string) => typedError<ImportedText, AppError>(__TAURI_INVOKE("import_extract", { data })),
+	/**
+	 *  OSのダイアログでファイルを1つ選ばせ、中身のテキストを返す。
+	 *  キャンセルしたときは値なし。元ファイルは保存しない。
+	 */
+	importPickFile: (title: string) => typedError<ImportedText | null, AppError>(__TAURI_INVOKE("import_pick_file", { title })),
+	/**
 	 *  保存済みのプロファイルの `/models` から、モデルIDの一覧を返す。
 	 * 
 	 *  保存済みのURLとキーで問い合わせる。キーの値は返さない。
@@ -35,6 +45,7 @@ export const commands = {
 	/**
 	 *  生成の設定(`generation`)だけを検査して保存する。
 	 * 
+	 *  分割の文字数も `generation` にあり、接続先には属さない。
 	 *  接続先はプロファイルのコマンドが更新する。引数の `connection` と `profiles` は使わない。
 	 *  知らない項目と、使用中プロファイルから書き戻した `connection` は残す。
 	 */
@@ -72,6 +83,8 @@ export type AppError =
 { kind: "emptyText" } | 
 /**  最大出力トークン数が正しくない */
 { kind: "invalidMaxTokens" } | 
+/**  分割の文字数が正しくない */
+{ kind: "invalidChunkBudget" } | 
 /**  接続先の名前が正しくない */
 { kind: "invalidProfileName"; reason: NameProblem } | 
 /**  接続先が見つからない */
@@ -88,6 +101,27 @@ export type AppError =
 { kind: "settingsVersionUnsupported"; version: number } | 
 /**  OSの資格情報ストアを利用できない */
 { kind: "secret"; detail: string } | 
+/**  取り込むファイルが空 */
+{ kind: "fileEmpty" } | 
+/**
+ *  ファイルが上限を超えている。`size` と `limit` はバイト数。
+ *  `u32` に収まる(取り込む上限は数十MB)。超える値は `u32::MAX` に切り詰める
+ */
+{ kind: "fileTooLarge"; size: number; limit: number } | 
+/**  UTF-8として読めない */
+{ kind: "fileEncoding" } | 
+/**  テキストでも、テキストを含むPDFでもない */
+{ kind: "fileUnsupported" } | 
+/**  PDFを開けない(暗号化・破損など) */
+{ kind: "pdfUnreadable" } | 
+/**  PDFからテキストを取り出せない(スキャンした画像だけなど) */
+{ kind: "pdfNoText" } | 
+/**  受け取ったファイルのデータが壊れている */
+{ kind: "fileDataInvalid" } | 
+/**  ファイルを読めなかった。`detail` はOSのメッセージ(本文は含めない) */
+{ kind: "fileReadFailed"; detail: string } | 
+/**  一度に複数のファイルは受け取れない */
+{ kind: "fileTooMany" } | 
 /**  想定外の内部エラー */
 { kind: "internal"; detail: string };
 
@@ -121,10 +155,17 @@ export type ConnectionSettings = {
 	model?: string,
 };
 
-/**  生成の設定。 */
+/**  生成の設定。接続先には属さない。 */
 export type GenerationSettings = {
 	/**  1回の翻訳で出力するトークン数の上限 */
 	maxTokens?: number,
+	/**  1ブロックに入れる原文の文字数。長い原文は、この文字数以内の塊に分けて順に翻訳する。 */
+	chunkBudget?: number,
+};
+
+/**  原文欄に展開するテキスト。元ファイルは持たない。 */
+export type ImportedText = {
+	text: string,
 };
 
 /**  キーの状態。設定画面の表示用。値そのものは含まない。 */
@@ -190,6 +231,7 @@ export type ReplyStats = {
  * 
  *  `connection` は、使用中プロファイルのURLとモデルを書き戻した複製。
  *  接続先の正は `profiles`。`connection` の名前と型は、以前の保存と読み手のために残す。
+ *  分割の文字数は `generation` にあり、プロファイルごとには持たない。
  */
 export type Settings = {
 	connection?: ConnectionSettings,
@@ -197,11 +239,22 @@ export type Settings = {
 	profiles?: ProfileBook,
 };
 
-/**  翻訳の進行を伝えるイベント。終わりには必ず `Done` か `Error` のどちらかを1回流す。 */
+/**
+ *  翻訳の進行を伝えるイベント。終わりには必ず `Done` か `Error` のどちらかを1回流す。
+ * 
+ *  長文は `Plan` のあと、ブロックごとに `ChunkStart` → `Delta`… → `ChunkDone` を繰り返す。
+ *  ブロックの間の改行は、`ChunkStart` の前に `Delta` として流す。`index` は 0 始まり。
+ */
 export type TranslateEvent = { type: "warning"; warning: TranslateWarning } | 
-/**  訳文の増分 */
+/**  分割数。進行表示の分母 */
+{ type: "plan"; chunks: number } | 
+/**  ブロックの翻訳を始める。`index` は 0 始まり */
+{ type: "chunkStart"; index: number } | 
+/**  訳文の増分。ブロックの間の改行もここに含まれる */
 { type: "delta"; text: string } | 
-/**  出力速度。全体で1回 */
+/**  ブロックの翻訳が終わった。`index` は 0 始まり */
+{ type: "chunkDone"; index: number } | 
+/**  出力速度。全体で1回(ブロックごとの合計) */
 { type: "stats"; stats: ReplyStats } | 
 /**  完了、または中断 */
 { type: "done" } | { type: "error"; error: AppError };

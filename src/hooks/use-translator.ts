@@ -11,7 +11,10 @@ export interface TranslateInput {
   targetLang: Lang;
 }
 
-/** 翻訳の進み具合と、開始・停止・消去の操作。入力(原文・言語)は持たない。 */
+/**
+ * 翻訳の進み具合と、開始・停止・消去の操作。入力(原文・言語)は持たない。
+ * 進行はブロック単位で、`state.progress`(例: 3ブロック目 / 全12)に入る。
+ */
 export function useTranslator() {
   const [state, dispatch] = useReducer(translateReducer, initialTranslateState);
 

@@ -18,6 +18,8 @@ pub use completions::{CompletionRequest, OnText, StreamOutcome};
 pub use connection::Connection;
 pub use stats::ReplyStats;
 
+use tokio_util::sync::CancellationToken;
+
 use crate::error::AppError;
 
 /// HTTPクライアントと、実行中のリクエストをまとめたもの。アプリで1つ作って共有する。
@@ -34,6 +36,14 @@ impl ApiClient {
         })
     }
 
+    /// 1回の翻訳を、中断の対象として登録する。
+    ///
+    /// 複数ブロックを順に翻訳するあいだ、同じ登録を持ち続ける。ブロックの合間に
+    /// 登録が外れると、その瞬間の中断が次のブロックへ届かない。
+    pub fn begin(&self, request_id: &str) -> ActiveGuard<'_> {
+        self.active.register(request_id)
+    }
+
     /// テキスト補完を生成し、テキストが届くたびに `on_text` を呼ぶ。
     ///
     /// `request_id` で [`cancel`](Self::cancel) できる。中断されたら、そこまでの結果で `Ok` を返す。
@@ -44,8 +54,20 @@ impl ApiClient {
         request: CompletionRequest<'_>,
         on_text: OnText<'_>,
     ) -> Result<StreamOutcome, AppError> {
-        let guard = self.active.register(request_id);
-        completions::stream(&self.http, connection, request, guard.token(), on_text).await
+        let guard = self.begin(request_id);
+        self.stream_with(guard.token(), connection, request, on_text)
+            .await
+    }
+
+    /// 既に [`begin`](Self::begin) してある中断トークンで、テキスト補完を生成する。
+    pub async fn stream_with(
+        &self,
+        cancel: &CancellationToken,
+        connection: &Connection,
+        request: CompletionRequest<'_>,
+        on_text: OnText<'_>,
+    ) -> Result<StreamOutcome, AppError> {
+        completions::stream(&self.http, connection, request, cancel, on_text).await
     }
 
     /// 実行中のリクエストを中断する。実行中のものがあれば `true`。

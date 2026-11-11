@@ -15,6 +15,14 @@ pub const DEFAULT_MODEL: &str = "pfnet/plamo-2-translate";
 pub const DEFAULT_MAX_TOKENS: u32 = 1024;
 /// 最大出力トークン数の上限(桁違いの入力の防止)。
 pub const MAX_MAX_TOKENS: u32 = 1_000_000;
+/// 1ブロックに入れる原文の文字数の初期値。
+pub const DEFAULT_CHUNK_BUDGET: u32 = 1500;
+/// 分割の文字数の上限(桁違いの入力の防止)。
+pub const MAX_CHUNK_BUDGET: u32 = 1_000_000;
+
+fn default_chunk_budget() -> u32 {
+    DEFAULT_CHUNK_BUDGET
+}
 
 /// 接続先。APIキーは含まない(OSの資格情報ストアにある)。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -46,18 +54,22 @@ impl ConnectionSettings {
     }
 }
 
-/// 生成の設定。
+/// 生成の設定。接続先には属さない。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase", default)]
 pub struct GenerationSettings {
     /// 1回の翻訳で出力するトークン数の上限
     pub max_tokens: u32,
+    /// 1ブロックに入れる原文の文字数。長い原文は、この文字数以内の塊に分けて順に翻訳する。
+    #[serde(default = "default_chunk_budget")]
+    pub chunk_budget: u32,
 }
 
 impl Default for GenerationSettings {
     fn default() -> Self {
         Self {
             max_tokens: DEFAULT_MAX_TOKENS,
+            chunk_budget: DEFAULT_CHUNK_BUDGET,
         }
     }
 }
@@ -66,6 +78,7 @@ impl Default for GenerationSettings {
 ///
 /// `connection` は、使用中プロファイルのURLとモデルを書き戻した複製。
 /// 接続先の正は `profiles`。`connection` の名前と型は、以前の保存と読み手のために残す。
+/// 分割の文字数は `generation` にあり、プロファイルごとには持たない。
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
@@ -92,6 +105,9 @@ impl Settings {
         if !(1..=MAX_MAX_TOKENS).contains(&self.generation.max_tokens) {
             return Err(AppError::InvalidMaxTokens);
         }
+        if !(1..=MAX_CHUNK_BUDGET).contains(&self.generation.chunk_budget) {
+            return Err(AppError::InvalidChunkBudget);
+        }
         Ok(self)
     }
 }
@@ -116,6 +132,7 @@ mod tests {
         assert_eq!(settings.connection.base_url, "http://localhost:8000/v1");
         assert_eq!(settings.connection.model, "pfnet/plamo-2-translate");
         assert_eq!(settings.generation.max_tokens, 1024);
+        assert_eq!(settings.generation.chunk_budget, DEFAULT_CHUNK_BUDGET);
         assert_eq!(settings.profiles.active().unwrap().id, "default");
     }
 
@@ -161,7 +178,10 @@ mod tests {
     fn max_tokens_must_be_between_one_and_the_limit() {
         let with = |max_tokens| {
             Settings {
-                generation: GenerationSettings { max_tokens },
+                generation: GenerationSettings {
+                    max_tokens,
+                    ..GenerationSettings::default()
+                },
                 ..Settings::default()
             }
             .validated()
@@ -183,6 +203,29 @@ mod tests {
         assert_eq!(settings.connection.model, "x");
         assert_eq!(settings.connection.base_url, DEFAULT_BASE_URL);
         assert_eq!(settings.generation, GenerationSettings::default());
+        assert_eq!(settings.generation.chunk_budget, DEFAULT_CHUNK_BUDGET);
+    }
+
+    #[test]
+    fn chunk_budget_must_be_between_one_and_the_limit() {
+        let with = |chunk_budget| {
+            Settings {
+                generation: GenerationSettings {
+                    chunk_budget,
+                    ..GenerationSettings::default()
+                },
+                ..Settings::default()
+            }
+            .validated()
+        };
+
+        assert_eq!(with(0).unwrap_err(), AppError::InvalidChunkBudget);
+        assert_eq!(
+            with(MAX_CHUNK_BUDGET + 1).unwrap_err(),
+            AppError::InvalidChunkBudget
+        );
+        assert!(with(1).is_ok());
+        assert!(with(MAX_CHUNK_BUDGET).is_ok());
     }
 
     #[test]

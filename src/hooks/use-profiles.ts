@@ -8,7 +8,7 @@ import {
   setActiveProfile,
   updateProfile,
 } from "@/services/profiles";
-import { clearApiKey, setApiKey, updateMaxTokens } from "@/services/settings";
+import { clearApiKey, setApiKey, updateGeneration } from "@/services/settings";
 import type {
   ConnectionProfile,
   KeyStatus,
@@ -41,11 +41,12 @@ export type KeyChange =
 export interface SaveProfileInput {
   profile: ConnectionProfile;
   maxTokens: number;
+  chunkBudget: number;
   keyChange: KeyChange;
 }
 
 /**
- * 編集中のプロファイルと、最大出力トークン数を保存する。
+ * 編集中のプロファイルと、全体の生成設定を保存する。
  * キーを変えたときは、その状態を返す(`unsaved` なら画面を閉じない)。
  */
 export function useSaveProfile() {
@@ -54,6 +55,7 @@ export function useSaveProfile() {
     mutationFn: async ({
       profile,
       maxTokens,
+      chunkBudget,
       keyChange,
     }: SaveProfileInput): Promise<KeyStatus | null> => {
       await updateProfile(profile);
@@ -63,7 +65,7 @@ export function useSaveProfile() {
       } else if (keyChange.type === "clear") {
         status = await clearApiKey(profile.id);
       }
-      await updateMaxTokens(maxTokens);
+      await updateGeneration({ maxTokens, chunkBudget });
       return status;
     },
     onSettled: refresh,

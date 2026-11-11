@@ -36,6 +36,7 @@ export const ja = {
       stopped: "翻訳を停止しました",
       error: "翻訳できませんでした",
     },
+    progress: "{{current}}/{{total}}",
     statsExact: "{{speed}} tokens/s",
     statsEstimated: "約 {{speed}} tokens/s",
     warnings: {
@@ -45,6 +46,12 @@ export const ja = {
         "最大出力トークン数に達したため、訳文が途中で切れている可能性があります。設定で上限を増やしてください。",
     },
     errorTitle: "翻訳できませんでした",
+  },
+  import: {
+    pick: "ファイルを取り込む",
+    busy: "読み込んでいます…",
+    dropHint: "ドロップすると、原文欄に展開します",
+    dialogTitle: "原文にするファイルを選択",
   },
   settings: {
     open: "設定",
@@ -85,6 +92,9 @@ export const ja = {
     maxTokens: "最大出力トークン数",
     maxTokensHint:
       "1回の翻訳で出力するトークン数の上限です。すべての接続先で共通です。",
+    chunkBudget: "分割の文字数",
+    chunkBudgetHint:
+      "長い原文を、この文字数までの塊に分けて順に翻訳します。すべての接続先で共通です。",
     save: "保存",
     saving: "保存しています…",
     cancel: "キャンセル",
@@ -135,6 +145,8 @@ export const ja = {
     invalidResponse: "サーバーの応答を解釈できませんでした: {{detail}}",
     emptyText: "翻訳する文章を入力してください。",
     invalidMaxTokens: "最大出力トークン数は、1以上の整数で入力してください。",
+    invalidChunkBudget:
+      "分割の文字数は、1以上100万以下の整数で入力してください。",
     invalidProfileName: {
       empty: "接続先の名前を入力してください。",
       tooLong: "接続先の名前は60文字以内にしてください。",
@@ -142,6 +154,20 @@ export const ja = {
     profileNotFound: "接続先が見つかりません。",
     duplicateProfile: "同じ接続先が既にあります。",
     lastProfile: "最後の接続先は削除できません。",
+    fileEmpty: "ファイルが空です。",
+    fileTooLarge: "ファイルが大きすぎます({{size}})。上限は{{limit}}です。",
+    fileEncoding:
+      "文字コードをUTF-8として読めませんでした。UTF-8のテキストを指定してください。",
+    fileUnsupported:
+      "対応していないファイルです。UTF-8のテキストか、テキストを含むPDFを指定してください。",
+    pdfUnreadable:
+      "PDFを読み込めませんでした。暗号化されているか、壊れている可能性があります。",
+    pdfNoText:
+      "PDFからテキストを取り出せませんでした。スキャンした画像だけのPDFには対応していません。",
+    fileDataInvalid: "ファイルの内容を読み取れませんでした。",
+    fileReadFailed: "ファイルを読み込めませんでした。",
+    fileReadFailedDetail: "ファイルを読み込めませんでした: {{detail}}",
+    fileTooMany: "一度に取り込めるファイルは1つです。",
     settingsReadFailed: "設定ファイルを読み込めませんでした: {{detail}}",
     settingsWriteFailed: "設定ファイルを保存できませんでした: {{detail}}",
     settingsVersionUnsupported:

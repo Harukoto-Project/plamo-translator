@@ -48,6 +48,28 @@ describe("describeAppError", () => {
     expect(withoutStatus).not.toContain("HTTP");
   });
 
+  it("大きすぎるファイルは、大きさの上限を文言に入れる", () => {
+    const text = describeAppError(
+      {
+        kind: "fileTooLarge",
+        size: 11 * 1024 * 1024,
+        limit: 10 * 1024 * 1024,
+      },
+      t,
+    );
+    expect(text).toContain("11MB");
+    expect(text).toContain("10MB");
+  });
+
+  it("ファイルの読み取り失敗は、詳細があれば文言に入れる", () => {
+    expect(describeAppError({ kind: "fileReadFailed", detail: "" }, t)).toBe(
+      "ファイルを読み込めませんでした。",
+    );
+    expect(
+      describeAppError({ kind: "fileReadFailed", detail: "denied" }, t),
+    ).toContain("denied");
+  });
+
   it("設定ファイルのバージョンを文言に入れる", () => {
     expect(
       describeAppError({ kind: "settingsVersionUnsupported", version: 7 }, t),
@@ -64,11 +86,21 @@ describe("describeAppError", () => {
       { kind: "invalidResponse", detail: "d" },
       { kind: "emptyText" },
       { kind: "invalidMaxTokens" },
+      { kind: "invalidChunkBudget" },
       { kind: "invalidProfileName", reason: "empty" },
       { kind: "invalidProfileName", reason: "tooLong" },
       { kind: "profileNotFound" },
       { kind: "duplicateProfile" },
       { kind: "lastProfile" },
+      { kind: "fileEmpty" },
+      { kind: "fileTooLarge", size: 11 * 1024 * 1024, limit: 10 * 1024 * 1024 },
+      { kind: "fileEncoding" },
+      { kind: "fileUnsupported" },
+      { kind: "pdfUnreadable" },
+      { kind: "pdfNoText" },
+      { kind: "fileDataInvalid" },
+      { kind: "fileReadFailed", detail: "d" },
+      { kind: "fileTooMany" },
       { kind: "settingsReadFailed", detail: "d" },
       { kind: "settingsWriteFailed", detail: "d" },
       { kind: "settingsVersionUnsupported", version: 2 },

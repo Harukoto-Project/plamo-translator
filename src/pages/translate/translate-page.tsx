@@ -3,6 +3,7 @@ import { AppHeader } from "@/components/layout/app-header";
 import { LanguageBar } from "@/components/translate/language-bar";
 import { SourcePane } from "@/components/translate/source-pane";
 import { TargetPane } from "@/components/translate/target-pane";
+import { useFileImport } from "@/hooks/use-file-import";
 import { useLanguageSelection } from "@/hooks/use-language-selection";
 import { useTranslator } from "@/hooks/use-translator";
 
@@ -16,6 +17,7 @@ export function TranslatePage() {
   const translator = useTranslator();
   const { state } = translator;
   const running = state.status === "running";
+  const fileImport = useFileImport(setSourceText, running);
 
   const translate = () => {
     const pair = language.resolve();
@@ -52,10 +54,18 @@ export function TranslatePage() {
           <div className="flex min-h-0 flex-1 flex-col @3xl:flex-row">
             <SourcePane
               value={sourceText}
-              onChange={setSourceText}
+              onChange={(value) => {
+                fileImport.clearError();
+                setSourceText(value);
+              }}
               running={running}
               onTranslate={translate}
               onStop={translator.stop}
+              importBusy={fileImport.busy}
+              importDragging={fileImport.dragging}
+              importError={fileImport.error}
+              onPickFile={fileImport.pick}
+              dropHandlers={fileImport.dropHandlers}
             />
             <TargetPane
               state={state}

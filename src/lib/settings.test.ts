@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { parseMaxTokens, resolveSettings } from "@/lib/settings";
+import {
+  MAX_CHUNK_BUDGET,
+  parseChunkBudget,
+  parseMaxTokens,
+  resolveSettings,
+} from "@/lib/settings";
 
 const profiles = {
   activeId: "default",
@@ -32,17 +37,32 @@ describe("parseMaxTokens", () => {
   });
 });
 
+describe("parseChunkBudget", () => {
+  it("1以上100万以下の整数を受け付ける", () => {
+    expect(parseChunkBudget("1500")).toBe(1500);
+    expect(parseChunkBudget(" 1 ")).toBe(1);
+    expect(parseChunkBudget(String(MAX_CHUNK_BUDGET))).toBe(MAX_CHUNK_BUDGET);
+  });
+
+  it.each(["", "0", "1.5", String(MAX_CHUNK_BUDGET + 1)])(
+    "%j は受け付けない",
+    (text) => {
+      expect(parseChunkBudget(text)).toBeUndefined();
+    },
+  );
+});
+
 describe("resolveSettings", () => {
   it("項目が揃っていれば、そのまま返す", () => {
     expect(
       resolveSettings({
         connection: { baseUrl: "http://x/v1", model: "m" },
-        generation: { maxTokens: 10 },
+        generation: { maxTokens: 10, chunkBudget: 1500 },
         profiles,
       }),
     ).toEqual({
       connection: { baseUrl: "http://x/v1", model: "m" },
-      generation: { maxTokens: 10 },
+      generation: { maxTokens: 10, chunkBudget: 1500 },
       profiles,
     });
   });
@@ -52,7 +72,21 @@ describe("resolveSettings", () => {
     expect(() =>
       resolveSettings({
         connection: { baseUrl: "http://x/v1" },
+        generation: { maxTokens: 10, chunkBudget: 1500 },
+        profiles,
+      }),
+    ).toThrow();
+    expect(() =>
+      resolveSettings({
+        connection: { baseUrl: "http://x/v1", model: "m" },
         generation: { maxTokens: 10 },
+        profiles,
+      }),
+    ).toThrow();
+    expect(() =>
+      resolveSettings({
+        connection: { baseUrl: "http://x/v1", model: "m" },
+        generation: { maxTokens: 10, chunkBudget: 1500 },
       }),
     ).toThrow();
   });

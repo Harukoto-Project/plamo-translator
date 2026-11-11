@@ -3,6 +3,8 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TranslatePage } from "@/pages/translate/translate-page";
+import { pickImportFile } from "@/services/import";
+import { AppCommandError } from "@/services/ipc";
 import { cancelTranslation, startTranslation } from "@/services/translate";
 import type { TranslateEvent, TranslateRequest } from "@/types/bindings";
 
@@ -10,6 +12,11 @@ vi.mock("@/services/app", () => ({
   getAppInfo: vi
     .fn()
     .mockResolvedValue({ name: "plamo-translator", version: "9.9.9" }),
+}));
+
+vi.mock("@/services/import", () => ({
+  pickImportFile: vi.fn().mockResolvedValue(null),
+  importDroppedFile: vi.fn(),
 }));
 
 vi.mock("@/services/translate", () => ({
@@ -20,7 +27,7 @@ vi.mock("@/services/translate", () => ({
 vi.mock("@/services/settings", () => ({
   getSettings: vi.fn().mockResolvedValue({
     connection: { baseUrl: "http://localhost:8000/v1", model: "m" },
-    generation: { maxTokens: 1024 },
+    generation: { maxTokens: 1024, chunkBudget: 1500 },
     profiles: {
       activeId: "default",
       profiles: [
@@ -33,7 +40,7 @@ vi.mock("@/services/settings", () => ({
       ],
     },
   }),
-  updateMaxTokens: vi.fn(),
+  updateGeneration: vi.fn(),
   getApiKeyStatus: vi.fn().mockResolvedValue("unset"),
   setApiKey: vi.fn(),
   clearApiKey: vi.fn(),
@@ -94,6 +101,8 @@ function renderPage() {
 beforeEach(() => {
   vi.mocked(startTranslation).mockReset();
   vi.mocked(cancelTranslation).mockClear();
+  vi.mocked(pickImportFile).mockReset();
+  vi.mocked(pickImportFile).mockResolvedValue(null);
 });
 
 describe("TranslatePage", () => {
@@ -199,6 +208,28 @@ describe("TranslatePage", () => {
 
     expect(await screen.findByText("翻訳を停止しました")).toBeInTheDocument();
     expect(screen.getByLabelText("訳文")).toHaveValue("Hel");
+  });
+
+  it("ブロックの進行を表示し、失敗してもそこまでの訳文と進行は残る", async () => {
+    const captured = captureTranslation();
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.type(screen.getByLabelText("原文"), "こんにちは");
+    await user.click(screen.getByRole("button", { name: "翻訳" }));
+    captured.emit({ type: "plan", chunks: 12 });
+    captured.emit({ type: "chunkStart", index: 2 });
+    captured.emit({ type: "delta", text: "途中" });
+
+    expect(screen.getByRole("status")).toHaveTextContent("3/12");
+    expect(screen.getByLabelText("訳文")).toHaveValue("途中");
+
+    captured.emit({ type: "error", error: { kind: "timeout" } });
+    captured.finish();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("タイムアウト");
+    expect(screen.getByRole("status")).toHaveTextContent("3/12");
+    expect(screen.getByLabelText("訳文")).toHaveValue("途中");
   });
 
   it("失敗したら、エラーを表示する", async () => {
@@ -489,5 +520,57 @@ describe("TranslatePage の入れ替え・コピー・再翻訳", () => {
     await user.clear(screen.getByLabelText("原文"));
 
     expect(screen.getByRole("button", { name: "再翻訳" })).toBeDisabled();
+  });
+
+  it("ファイルを選ぶと、原文欄に展開する", async () => {
+    const user = userEvent.setup();
+    vi.mocked(pickImportFile).mockResolvedValue("取り込まれた文章");
+    renderPage();
+
+    await user.click(
+      screen.getByRole("button", { name: "ファイルを取り込む" }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("原文")).toHaveValue("取り込まれた文章");
+    });
+  });
+
+  it("ファイルを取り込めなかったとき、種別の文言を出す", async () => {
+    const user = userEvent.setup();
+    vi.mocked(pickImportFile).mockRejectedValue(
+      new AppCommandError({ kind: "pdfNoText" }),
+    );
+    renderPage();
+
+    await user.click(
+      screen.getByRole("button", { name: "ファイルを取り込む" }),
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "スキャンした画像だけのPDFには対応していません",
+    );
+  });
+
+  it("翻訳中は、ファイルを取り込めない", async () => {
+    const captured = captureTranslation();
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.type(screen.getByLabelText("原文"), "こんにちは");
+    await user.click(screen.getByRole("button", { name: "翻訳" }));
+
+    expect(
+      screen.getByRole("button", { name: "ファイルを取り込む" }),
+    ).toBeDisabled();
+
+    captured.emit({ type: "done" });
+    captured.finish();
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "ファイルを取り込む" }),
+      ).toBeEnabled();
+    });
   });
 });

@@ -17,6 +17,12 @@ export type TranslateStatus =
   /** 失敗した(それまでの訳文は残る) */
   | "error";
 
+/** ブロック単位の進行。`current` は 1 から、`total` はブロックの数。 */
+export interface TranslateProgress {
+  current: number;
+  total: number;
+}
+
 export interface TranslateState {
   status: TranslateStatus;
   /** 訳文(届いた分だけ) */
@@ -26,6 +32,8 @@ export interface TranslateState {
   error: AppError | null;
   /** 利用者が停止を押したか。完了のイベントが来たとき、「完了」と「停止」を見分ける */
   stopRequested: boolean;
+  /** ブロックの進行。まだ分割数が来ていなければ `null` */
+  progress: TranslateProgress | null;
 }
 
 export const initialTranslateState: TranslateState = {
@@ -35,6 +43,7 @@ export const initialTranslateState: TranslateState = {
   stats: null,
   error: null,
   stopRequested: false,
+  progress: null,
 };
 
 export type TranslateAction =
@@ -80,6 +89,24 @@ function applyEvent(
       return state.warnings.includes(event.warning)
         ? state
         : { ...state, warnings: [...state.warnings, event.warning] };
+    case "plan":
+      return {
+        ...state,
+        progress: {
+          current: state.progress?.current ?? 0,
+          total: event.chunks,
+        },
+      };
+    case "chunkStart":
+      return {
+        ...state,
+        progress: {
+          current: event.index + 1,
+          total: state.progress?.total ?? event.index + 1,
+        },
+      };
+    case "chunkDone":
+      return state;
     case "delta":
       return { ...state, text: state.text + event.text };
     case "stats":

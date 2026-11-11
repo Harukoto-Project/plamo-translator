@@ -58,6 +58,8 @@ pub enum AppError {
     EmptyText,
     /// 最大出力トークン数が正しくない
     InvalidMaxTokens,
+    /// 分割の文字数が正しくない
+    InvalidChunkBudget,
     /// 接続先の名前が正しくない
     InvalidProfileName { reason: NameProblem },
     /// 接続先が見つからない
@@ -74,6 +76,25 @@ pub enum AppError {
     SettingsVersionUnsupported { version: u32 },
     /// OSの資格情報ストアを利用できない
     Secret { detail: String },
+    /// 取り込むファイルが空
+    FileEmpty,
+    /// ファイルが上限を超えている。`size` と `limit` はバイト数。
+    /// `u32` に収まる(取り込む上限は数十MB)。超える値は `u32::MAX` に切り詰める
+    FileTooLarge { size: u32, limit: u32 },
+    /// UTF-8として読めない
+    FileEncoding,
+    /// テキストでも、テキストを含むPDFでもない
+    FileUnsupported,
+    /// PDFを開けない(暗号化・破損など)
+    PdfUnreadable,
+    /// PDFからテキストを取り出せない(スキャンした画像だけなど)
+    PdfNoText,
+    /// 受け取ったファイルのデータが壊れている
+    FileDataInvalid,
+    /// ファイルを読めなかった。`detail` はOSのメッセージ(本文は含めない)
+    FileReadFailed { detail: String },
+    /// 一度に複数のファイルは受け取れない
+    FileTooMany,
     /// 想定外の内部エラー
     Internal { detail: String },
 }
@@ -123,5 +144,24 @@ mod tests {
         })
         .unwrap();
         assert_eq!(json, r#"{"kind":"invalidUrl","reason":"queryOrFragment"}"#);
+    }
+
+    #[test]
+    fn file_import_errors_carry_only_the_kind_and_the_values() {
+        let too_large = serde_json::to_string(&AppError::FileTooLarge {
+            size: 11,
+            limit: 10,
+        })
+        .unwrap();
+        assert_eq!(too_large, r#"{"kind":"fileTooLarge","size":11,"limit":10}"#);
+
+        assert_eq!(
+            serde_json::to_string(&AppError::FileEncoding).unwrap(),
+            r#"{"kind":"fileEncoding"}"#
+        );
+        assert_eq!(
+            serde_json::to_string(&AppError::PdfNoText).unwrap(),
+            r#"{"kind":"pdfNoText"}"#
+        );
     }
 }

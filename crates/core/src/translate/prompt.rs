@@ -17,18 +17,24 @@ pub struct SourceText {
 }
 
 impl SourceText {
-    /// 原文から区切り文字を取り除き、末尾の空白を削る。
+    /// 原文から区切り文字を取り除き、末尾の空白を削る。プロンプトに渡す本文向け。
     ///
     /// 取り除いた結果、別の区切り文字が組み上がること(`<|plamo:<|plamo:op|>op|>`)があるので、
     /// 無くなるまで繰り返す。
     pub fn new(raw: &str) -> Self {
+        let mut text = Self::keeping_breaks(raw);
+        text.text.truncate(text.text.trim_end().len());
+        text
+    }
+
+    /// 区切り文字だけを除き、末尾の空行は残す。分割が、その空行を区切りとして記録するため。
+    pub fn keeping_breaks(raw: &str) -> Self {
         let mut text = raw.to_owned();
         let mut sanitized = false;
         while text.contains(DELIMITER) {
             text = text.replace(DELIMITER, "");
             sanitized = true;
         }
-        text.truncate(text.trim_end().len());
         Self { text, sanitized }
     }
 
@@ -124,6 +130,15 @@ mod tests {
 
         // 自分のぶん(dataset・input・output)の3つだけ
         assert_eq!(prompt.matches(DELIMITER).count(), 3, "{prompt}");
+    }
+
+    #[test]
+    fn keeping_breaks_leaves_trailing_blank_lines() {
+        let text = SourceText::keeping_breaks("Hello\n\n");
+
+        assert_eq!(text.as_str(), "Hello\n\n");
+        assert!(!text.is_blank());
+        assert!(!text.was_sanitized());
     }
 
     #[test]

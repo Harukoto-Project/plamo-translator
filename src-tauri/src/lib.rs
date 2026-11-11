@@ -9,6 +9,9 @@ pub fn run() {
     let builder = bindings::builder();
 
     tauri::Builder::default()
+        // ファイル選択のダイアログは、Rust側のコマンド(`import_pick_file`)からだけ使う。
+        // 画面(JS)にはこのプラグインの権限を与えない
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {
             builder.mount_events(app);

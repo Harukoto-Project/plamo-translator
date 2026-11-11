@@ -64,6 +64,42 @@ describe("translateReducer", () => {
     expect(state.warnings).toEqual(["delimiterRemoved", "outputTruncated"]);
   });
 
+  it("ブロックの進行は、いまの番号(1から)と総数を持つ", () => {
+    const state = run(
+      { type: "start" },
+      { type: "event", event: { type: "plan", chunks: 12 } },
+      { type: "event", event: { type: "chunkStart", index: 2 } },
+      { type: "event", event: { type: "chunkDone", index: 2 } },
+    );
+    expect(state.progress).toEqual({ current: 3, total: 12 });
+    expect(state.status).toBe("running");
+  });
+
+  it("中断・エラーのあとも、そこまでの進行と訳文は残る", () => {
+    const stopped = run(
+      { type: "start" },
+      { type: "event", event: { type: "plan", chunks: 4 } },
+      { type: "event", event: { type: "chunkStart", index: 1 } },
+      delta("途中"),
+      { type: "stop" },
+      { type: "event", event: { type: "done" } },
+    );
+    expect(stopped.status).toBe("stopped");
+    expect(stopped.text).toBe("途中");
+    expect(stopped.progress).toEqual({ current: 2, total: 4 });
+
+    const failed = run(
+      { type: "start" },
+      { type: "event", event: { type: "plan", chunks: 4 } },
+      { type: "event", event: { type: "chunkStart", index: 0 } },
+      delta("A"),
+      { type: "event", event: { type: "error", error: { kind: "timeout" } } },
+    );
+    expect(failed.status).toBe("error");
+    expect(failed.text).toBe("A");
+    expect(failed.progress).toEqual({ current: 1, total: 4 });
+  });
+
   it("速度のイベントを保持する", () => {
     const stats = { tokens: 10, elapsedMs: 500, estimated: false };
     const state = run(

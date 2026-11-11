@@ -16,6 +16,7 @@ pub async fn settings_get(state: State<'_, AppState>) -> Result<Settings, AppErr
 
 /// 生成の設定(`generation`)だけを検査して保存する。
 ///
+/// 分割の文字数も `generation` にあり、接続先には属さない。
 /// 接続先はプロファイルのコマンドが更新する。引数の `connection` と `profiles` は使わない。
 /// 知らない項目と、使用中プロファイルから書き戻した `connection` は残す。
 #[tauri::command]

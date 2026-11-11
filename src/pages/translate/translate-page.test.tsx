@@ -20,7 +20,7 @@ vi.mock("@/services/translate", () => ({
 vi.mock("@/services/settings", () => ({
   getSettings: vi.fn().mockResolvedValue({
     connection: { baseUrl: "http://localhost:8000/v1", model: "m" },
-    generation: { maxTokens: 1024 },
+    generation: { maxTokens: 1024, chunkBudget: 1500 },
     profiles: {
       activeId: "default",
       profiles: [
@@ -33,7 +33,7 @@ vi.mock("@/services/settings", () => ({
       ],
     },
   }),
-  updateMaxTokens: vi.fn(),
+  updateGeneration: vi.fn(),
   getApiKeyStatus: vi.fn().mockResolvedValue("unset"),
   setApiKey: vi.fn(),
   clearApiKey: vi.fn(),
@@ -199,6 +199,28 @@ describe("TranslatePage", () => {
 
     expect(await screen.findByText("翻訳を停止しました")).toBeInTheDocument();
     expect(screen.getByLabelText("訳文")).toHaveValue("Hel");
+  });
+
+  it("ブロックの進行を表示し、失敗してもそこまでの訳文と進行は残る", async () => {
+    const captured = captureTranslation();
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.type(screen.getByLabelText("原文"), "こんにちは");
+    await user.click(screen.getByRole("button", { name: "翻訳" }));
+    captured.emit({ type: "plan", chunks: 12 });
+    captured.emit({ type: "chunkStart", index: 2 });
+    captured.emit({ type: "delta", text: "途中" });
+
+    expect(screen.getByRole("status")).toHaveTextContent("3/12");
+    expect(screen.getByLabelText("訳文")).toHaveValue("途中");
+
+    captured.emit({ type: "error", error: { kind: "timeout" } });
+    captured.finish();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("タイムアウト");
+    expect(screen.getByRole("status")).toHaveTextContent("3/12");
+    expect(screen.getByLabelText("訳文")).toHaveValue("途中");
   });
 
   it("失敗したら、エラーを表示する", async () => {

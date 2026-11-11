@@ -8,8 +8,8 @@ mod store;
 mod url;
 
 pub use model::{
-    ConnectionSettings, DEFAULT_BASE_URL, DEFAULT_MAX_TOKENS, DEFAULT_MODEL, GenerationSettings,
-    MAX_MAX_TOKENS, Settings,
+    ConnectionSettings, DEFAULT_BASE_URL, DEFAULT_CHUNK_BUDGET, DEFAULT_MAX_TOKENS, DEFAULT_MODEL,
+    GenerationSettings, MAX_CHUNK_BUDGET, MAX_MAX_TOKENS, Settings,
 };
 pub use store::{SETTINGS_VERSION, SettingsStore};
 pub use url::validate_base_url;

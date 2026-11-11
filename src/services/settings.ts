@@ -8,20 +8,21 @@ export async function getSettings(): Promise<ResolvedSettings> {
 }
 
 /**
- * 最大出力トークン数だけを保存する。
+ * 全体の生成設定(最大出力トークン数と分割の文字数)だけを保存する。
  *
  * 読み込んだ `generation` を広げてから渡すので、あとから足された項目を落とさない。
- * 接続先はプロファイルのコマンドが保存する。
+ * 接続先はプロファイルのコマンドが保存する。分割の文字数はプロファイルごとには持たない。
  */
-export async function updateMaxTokens(
-  maxTokens: number,
-): Promise<ResolvedSettings> {
+export async function updateGeneration(input: {
+  maxTokens: number;
+  chunkBudget: number;
+}): Promise<ResolvedSettings> {
   const current = await getSettings();
   return resolveSettings(
     await unwrap(
       commands.settingsUpdate({
         ...current,
-        generation: { ...current.generation, maxTokens },
+        generation: { ...current.generation, ...input },
       }),
     ),
   );

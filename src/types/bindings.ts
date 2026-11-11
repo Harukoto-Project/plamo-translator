@@ -35,6 +35,7 @@ export const commands = {
 	/**
 	 *  生成の設定(`generation`)だけを検査して保存する。
 	 * 
+	 *  分割の文字数も `generation` にあり、接続先には属さない。
 	 *  接続先はプロファイルのコマンドが更新する。引数の `connection` と `profiles` は使わない。
 	 *  知らない項目と、使用中プロファイルから書き戻した `connection` は残す。
 	 */
@@ -72,6 +73,8 @@ export type AppError =
 { kind: "emptyText" } | 
 /**  最大出力トークン数が正しくない */
 { kind: "invalidMaxTokens" } | 
+/**  分割の文字数が正しくない */
+{ kind: "invalidChunkBudget" } | 
 /**  接続先の名前が正しくない */
 { kind: "invalidProfileName"; reason: NameProblem } | 
 /**  接続先が見つからない */
@@ -121,10 +124,12 @@ export type ConnectionSettings = {
 	model?: string,
 };
 
-/**  生成の設定。 */
+/**  生成の設定。接続先には属さない。 */
 export type GenerationSettings = {
 	/**  1回の翻訳で出力するトークン数の上限 */
 	maxTokens?: number,
+	/**  1ブロックに入れる原文の文字数。長い原文は、この文字数以内の塊に分けて順に翻訳する。 */
+	chunkBudget?: number,
 };
 
 /**  キーの状態。設定画面の表示用。値そのものは含まない。 */
@@ -190,6 +195,7 @@ export type ReplyStats = {
  * 
  *  `connection` は、使用中プロファイルのURLとモデルを書き戻した複製。
  *  接続先の正は `profiles`。`connection` の名前と型は、以前の保存と読み手のために残す。
+ *  分割の文字数は `generation` にあり、プロファイルごとには持たない。
  */
 export type Settings = {
 	connection?: ConnectionSettings,
@@ -197,11 +203,22 @@ export type Settings = {
 	profiles?: ProfileBook,
 };
 
-/**  翻訳の進行を伝えるイベント。終わりには必ず `Done` か `Error` のどちらかを1回流す。 */
+/**
+ *  翻訳の進行を伝えるイベント。終わりには必ず `Done` か `Error` のどちらかを1回流す。
+ * 
+ *  長文は `Plan` のあと、ブロックごとに `ChunkStart` → `Delta`… → `ChunkDone` を繰り返す。
+ *  ブロックの間の改行は、`ChunkStart` の前に `Delta` として流す。`index` は 0 始まり。
+ */
 export type TranslateEvent = { type: "warning"; warning: TranslateWarning } | 
-/**  訳文の増分 */
+/**  分割数。進行表示の分母 */
+{ type: "plan"; chunks: number } | 
+/**  ブロックの翻訳を始める。`index` は 0 始まり */
+{ type: "chunkStart"; index: number } | 
+/**  訳文の増分。ブロックの間の改行もここに含まれる */
 { type: "delta"; text: string } | 
-/**  出力速度。全体で1回 */
+/**  ブロックの翻訳が終わった。`index` は 0 始まり */
+{ type: "chunkDone"; index: number } | 
+/**  出力速度。全体で1回(ブロックごとの合計) */
 { type: "stats"; stats: ReplyStats } | 
 /**  完了、または中断 */
 { type: "done" } | { type: "error"; error: AppError };

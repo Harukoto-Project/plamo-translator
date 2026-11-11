@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { type KeyChange, useSaveProfile } from "@/hooks/use-profiles";
 import { useApiKeyStatus } from "@/hooks/use-settings";
 import { describeAppError } from "@/lib/app-error";
-import { parseMaxTokens } from "@/lib/settings";
+import { parseChunkBudget, parseMaxTokens } from "@/lib/settings";
 import { toAppError } from "@/services/ipc";
 import type { AppError, ConnectionProfile } from "@/types/bindings";
 
@@ -23,24 +23,33 @@ interface ProfileFormProps {
   /** 使用中でなければ、切り替えボタンを出す */
   active: boolean;
   maxTokens: number;
+  /** 全体設定。プロファイルごとには持たない */
+  chunkBudget: number;
   onUse: () => void;
   using: boolean;
   onSaved: () => void;
   onCancel: () => void;
 }
 
-/** 選択中の接続先と、全体の最大出力トークン数。 */
+/** 選択中の接続先と、全体の生成設定(最大出力トークン数・分割の文字数)。 */
 export function ProfileForm({
   profile,
   active,
   maxTokens: initialMaxTokens,
+  chunkBudget: initialChunkBudget,
   onUse,
   using,
   onSaved,
   onCancel,
 }: ProfileFormProps) {
   const { t } = useTranslation();
-  const ids = { name: useId(), url: useId(), key: useId(), tokens: useId() };
+  const ids = {
+    name: useId(),
+    url: useId(),
+    key: useId(),
+    tokens: useId(),
+    budget: useId(),
+  };
   const save = useSaveProfile();
   const keyStatus = useApiKeyStatus(profile.id);
 
@@ -48,6 +57,7 @@ export function ProfileForm({
   const [baseUrl, setBaseUrl] = useState(profile.baseUrl);
   const [model, setModel] = useState(profile.model);
   const [maxTokens, setMaxTokens] = useState(String(initialMaxTokens));
+  const [chunkBudget, setChunkBudget] = useState(String(initialChunkBudget));
   const [apiKey, setApiKey] = useState("");
   const [clearKey, setClearKey] = useState(false);
   const [error, setError] = useState<AppError | null>(null);
@@ -61,6 +71,11 @@ export function ProfileForm({
     const parsedTokens = parseMaxTokens(maxTokens);
     if (parsedTokens === undefined) {
       setError({ kind: "invalidMaxTokens" });
+      return;
+    }
+    const parsedBudget = parseChunkBudget(chunkBudget);
+    if (parsedBudget === undefined) {
+      setError({ kind: "invalidChunkBudget" });
       return;
     }
     setError(null);
@@ -77,6 +92,7 @@ export function ProfileForm({
       {
         profile: { id: profile.id, name, baseUrl, model },
         maxTokens: parsedTokens,
+        chunkBudget: parsedBudget,
         keyChange,
       },
       {
@@ -177,6 +193,18 @@ export function ProfileForm({
             onChange={(event) => setMaxTokens(event.target.value)}
           />
           <FieldDescription>{t("settings.maxTokensHint")}</FieldDescription>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor={ids.budget}>
+            {t("settings.chunkBudget")}
+          </FieldLabel>
+          <Input
+            id={ids.budget}
+            inputMode="numeric"
+            value={chunkBudget}
+            onChange={(event) => setChunkBudget(event.target.value)}
+          />
+          <FieldDescription>{t("settings.chunkBudgetHint")}</FieldDescription>
         </Field>
       </FieldGroup>
 

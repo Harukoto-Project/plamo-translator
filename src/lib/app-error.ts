@@ -28,6 +28,8 @@ export function describeAppError(error: AppError, t: TFunction): string {
       return t("errors.emptyText");
     case "invalidMaxTokens":
       return t("errors.invalidMaxTokens");
+    case "invalidChunkBudget":
+      return t("errors.invalidChunkBudget");
     case "invalidProfileName":
       return t(`errors.invalidProfileName.${error.reason}`);
     case "profileNotFound":

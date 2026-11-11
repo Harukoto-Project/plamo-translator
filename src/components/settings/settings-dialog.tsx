@@ -75,6 +75,7 @@ function SettingsDialogBody({ onClose }: { onClose: () => void }) {
     <SettingsEditor
       book={profiles.data}
       maxTokens={settings.data.generation.maxTokens}
+      chunkBudget={settings.data.generation.chunkBudget}
       onClose={onClose}
     />
   );
@@ -83,10 +84,12 @@ function SettingsDialogBody({ onClose }: { onClose: () => void }) {
 function SettingsEditor({
   book,
   maxTokens,
+  chunkBudget,
   onClose,
 }: {
   book: ProfileBook;
   maxTokens: number;
+  chunkBudget: number;
   onClose: () => void;
 }) {
   const initial = activeProfile(book)?.id ?? book.profiles[0]?.id ?? "";
@@ -113,6 +116,7 @@ function SettingsEditor({
         profile={selected}
         active={selected.id === book.activeId}
         maxTokens={maxTokens}
+        chunkBudget={chunkBudget}
         using={setActive.isPending}
         onUse={() => setActive.mutate(selected.id)}
         onSaved={onClose}

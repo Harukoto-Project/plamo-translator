@@ -35,6 +35,7 @@ pub async fn translate_start(
                 target: request.target_lang,
                 text: &request.text,
                 max_tokens: active.max_tokens,
+                chunk_budget: active.chunk_budget,
             };
             translate::run(&state.api, &active.connection, job, emit).await;
         }

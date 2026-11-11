@@ -58,6 +58,8 @@ pub enum AppError {
     EmptyText,
     /// 最大出力トークン数が正しくない
     InvalidMaxTokens,
+    /// 分割の文字数が正しくない
+    InvalidChunkBudget,
     /// 接続先の名前が正しくない
     InvalidProfileName { reason: NameProblem },
     /// 接続先が見つからない

@@ -22,12 +22,14 @@ pub struct ProfileAdded {
     pub id: String,
 }
 
-/// 翻訳に使う、使用中プロファイルの接続情報と最大出力トークン数。
+/// 翻訳に使う、使用中プロファイルの接続情報と、全体の生成設定。
 ///
 /// キーを持つので、IPCの戻り値にはしない(`Serialize` を付けない)。
+/// 分割の文字数はプロファイルではなく、全体の生成設定から取る。
 pub struct ActiveConnection {
     pub connection: Connection,
     pub max_tokens: u32,
+    pub chunk_budget: u32,
 }
 
 /// 既存と重ならない新しいID(`p` + 時刻のナノ秒の16進。万一重なれば1つずつずらす)。
@@ -126,6 +128,7 @@ impl ProfileService {
         Ok(ActiveConnection {
             connection: profile.connection(&self.keys.get(&profile.id)),
             max_tokens: settings.generation.max_tokens,
+            chunk_budget: settings.generation.chunk_budget,
         })
     }
 

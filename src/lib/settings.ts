@@ -13,10 +13,11 @@ import type {
  * 画面では全て揃っているものとして扱う。
  *
  * `generation` は、あとから足される項目を落とさないよう、そのまま広げる。
+ * 分割の文字数は `generation` にあり、プロファイルごとには持たない。
  */
 export interface ResolvedSettings {
   connection: Required<ConnectionSettings>;
-  generation: GenerationSettings & { maxTokens: number };
+  generation: GenerationSettings & { maxTokens: number; chunkBudget: number };
   profiles: ProfileBook;
 }
 
@@ -27,30 +28,43 @@ export interface ResolvedSettings {
  * 型(`u32`)に収まるかだけを見る。
  */
 export function parseMaxTokens(text: string): number | undefined {
-  const trimmed = text.trim();
-  if (!/^\d+$/.test(trimmed)) return undefined;
-  const value = Number(trimmed);
-  return value >= 1 && value <= U32_MAX ? value : undefined;
+  return parsePositiveInt(text, U32_MAX);
+}
+
+/** Rust の `MAX_CHUNK_BUDGET` と同じ。これを超える値は保存前に弾く。 */
+export const MAX_CHUNK_BUDGET = 1_000_000;
+
+/** 入力欄の文字を、分割の文字数(1以上100万以下)にする。 */
+export function parseChunkBudget(text: string): number | undefined {
+  return parsePositiveInt(text, MAX_CHUNK_BUDGET);
 }
 
 const U32_MAX = 4_294_967_295;
+
+function parsePositiveInt(text: string, max: number): number | undefined {
+  const trimmed = text.trim();
+  if (!/^\d+$/.test(trimmed)) return undefined;
+  const value = Number(trimmed);
+  return value >= 1 && value <= max ? value : undefined;
+}
 
 /** Rust から受け取った設定を、全項目が揃った形にする。揃っていなければ例外(Rust 側の不具合)。 */
 export function resolveSettings(settings: Settings): ResolvedSettings {
   const { baseUrl, model } = settings.connection ?? {};
   const generation = settings.generation ?? {};
-  const { maxTokens } = generation;
+  const { maxTokens, chunkBudget } = generation;
   if (
     baseUrl === undefined ||
     model === undefined ||
     maxTokens === undefined ||
+    chunkBudget === undefined ||
     settings.profiles === undefined
   ) {
     throw new Error("Rust から受け取った設定に、欠けた項目があります");
   }
   return {
     connection: { baseUrl, model },
-    generation: { ...generation, maxTokens },
+    generation: { ...generation, maxTokens, chunkBudget },
     profiles: settings.profiles,
   };
 }

@@ -21,6 +21,14 @@ export function TranslateStatus({ state }: TranslateStatusProps) {
           { speed: formatSpeed(speed) },
         )
       : null;
+  const progress = state.progress;
+  const progressText =
+    progress && progress.current > 0 && progress.total > 0
+      ? t("translate.progress", {
+          current: progress.current,
+          total: progress.total,
+        })
+      : null;
 
   return (
     <div className="flex min-w-0 items-center gap-3 text-xs text-muted-foreground">
@@ -33,11 +41,16 @@ export function TranslateStatus({ state }: TranslateStatusProps) {
       <p
         role="status"
         className={cn(
-          "truncate",
+          "flex min-w-0 items-baseline gap-2",
           state.status === "error" && "text-destructive",
         )}
       >
-        {state.status !== "idle" && t(`translate.status.${state.status}`)}
+        <span className="truncate">
+          {state.status !== "idle" && t(`translate.status.${state.status}`)}
+        </span>
+        {progressText && (
+          <span className="shrink-0 tabular-nums">{progressText}</span>
+        )}
       </p>
       {statsText && <p className="shrink-0 tabular-nums">{statsText}</p>}
     </div>

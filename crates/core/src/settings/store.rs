@@ -249,6 +249,7 @@ mod tests {
         assert_eq!(value["version"], 1);
         assert_eq!(value["connection"]["baseUrl"], "http://localhost:1234/v1");
         assert_eq!(value["generation"]["maxTokens"], 256);
+        assert_eq!(value["generation"]["chunkBudget"], 1500);
         assert_eq!(value["profiles"]["activeId"], "default");
         assert_eq!(value["profiles"]["profiles"][0]["model"], "m");
     }
@@ -341,6 +342,10 @@ mod tests {
         assert_eq!(loaded.connection.base_url, "http://h:1/v1");
         assert_eq!(loaded.connection.model, "x");
         assert_eq!(loaded.generation, GenerationSettings::default());
+        assert_eq!(
+            loaded.generation.chunk_budget,
+            crate::settings::DEFAULT_CHUNK_BUDGET
+        );
         assert_eq!(loaded.profiles.active_id, "default");
         assert_eq!(loaded.profiles.profiles[0].model, "x");
     }
@@ -363,6 +368,10 @@ mod tests {
         );
         assert_eq!(loaded.connection.model, "old");
         assert_eq!(loaded.generation.max_tokens, 32);
+        assert_eq!(
+            loaded.generation.chunk_budget,
+            crate::settings::DEFAULT_CHUNK_BUDGET
+        );
         assert_eq!(std::fs::read_to_string(&path).unwrap(), original);
     }
 
@@ -399,7 +408,10 @@ mod tests {
         let store = SettingsStore::new(dir.path());
 
         let saved = store
-            .update_generation(GenerationSettings { max_tokens: 64 })
+            .update_generation(GenerationSettings {
+                max_tokens: 64,
+                ..GenerationSettings::default()
+            })
             .unwrap();
 
         assert_eq!(saved.generation.max_tokens, 64);
@@ -421,7 +433,10 @@ mod tests {
 
         assert_eq!(
             store
-                .update_generation(GenerationSettings { max_tokens: 0 })
+                .update_generation(GenerationSettings {
+                    max_tokens: 0,
+                    ..GenerationSettings::default()
+                })
                 .unwrap_err(),
             AppError::InvalidMaxTokens
         );

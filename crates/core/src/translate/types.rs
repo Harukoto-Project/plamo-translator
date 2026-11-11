@@ -31,17 +31,32 @@ pub enum TranslateWarning {
 }
 
 /// 翻訳の進行を伝えるイベント。終わりには必ず `Done` か `Error` のどちらかを1回流す。
+///
+/// 長文は `Plan` のあと、ブロックごとに `ChunkStart` → `Delta`… → `ChunkDone` を繰り返す。
+/// ブロックの間の改行は、`ChunkStart` の前に `Delta` として流す。`index` は 0 始まり。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum TranslateEvent {
     Warning {
         warning: TranslateWarning,
     },
-    /// 訳文の増分
+    /// 分割数。進行表示の分母
+    Plan {
+        chunks: u32,
+    },
+    /// ブロックの翻訳を始める。`index` は 0 始まり
+    ChunkStart {
+        index: u32,
+    },
+    /// 訳文の増分。ブロックの間の改行もここに含まれる
     Delta {
         text: String,
     },
-    /// 出力速度。全体で1回
+    /// ブロックの翻訳が終わった。`index` は 0 始まり
+    ChunkDone {
+        index: u32,
+    },
+    /// 出力速度。全体で1回(ブロックごとの合計)
     Stats {
         stats: ReplyStats,
     },
@@ -60,6 +75,18 @@ mod tests {
     fn events_are_tagged_by_type_in_camel_case() {
         let json = |event: TranslateEvent| serde_json::to_string(&event).unwrap();
 
+        assert_eq!(
+            json(TranslateEvent::Plan { chunks: 12 }),
+            r#"{"type":"plan","chunks":12}"#
+        );
+        assert_eq!(
+            json(TranslateEvent::ChunkStart { index: 2 }),
+            r#"{"type":"chunkStart","index":2}"#
+        );
+        assert_eq!(
+            json(TranslateEvent::ChunkDone { index: 2 }),
+            r#"{"type":"chunkDone","index":2}"#
+        );
         assert_eq!(
             json(TranslateEvent::Delta { text: "あ".into() }),
             r#"{"type":"delta","text":"あ"}"#

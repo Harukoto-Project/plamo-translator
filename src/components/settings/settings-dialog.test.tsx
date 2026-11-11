@@ -17,13 +17,13 @@ import {
   getApiKeyStatus,
   getSettings,
   setApiKey,
-  updateMaxTokens,
+  updateGeneration,
 } from "@/services/settings";
 import type { ProfileBook } from "@/types/bindings";
 
 vi.mock("@/services/settings", () => ({
   getSettings: vi.fn(),
-  updateMaxTokens: vi.fn(),
+  updateGeneration: vi.fn(),
   getApiKeyStatus: vi.fn(),
   setApiKey: vi.fn(),
   clearApiKey: vi.fn(),
@@ -53,7 +53,7 @@ const book: ProfileBook = { activeId: "default", profiles: [profile] };
 
 const saved = {
   connection: { baseUrl: profile.baseUrl, model: profile.model },
-  generation: { maxTokens: 1024 },
+  generation: { maxTokens: 1024, chunkBudget: 1500 },
   profiles: book,
 };
 
@@ -67,9 +67,9 @@ beforeEach(() => {
     activeId: next.id,
     profiles: [next],
   }));
-  vi.mocked(updateMaxTokens).mockImplementation(async (maxTokens) => ({
+  vi.mocked(updateGeneration).mockImplementation(async (generation) => ({
     ...saved,
-    generation: { maxTokens },
+    generation,
   }));
   vi.mocked(setApiKey).mockResolvedValue("saved");
   vi.mocked(clearApiKey).mockResolvedValue("unset");
@@ -103,6 +103,7 @@ describe("SettingsDialog", () => {
       "pfnet/plamo-2-translate",
     );
     expect(screen.getByLabelText("最大出力トークン数")).toHaveValue("1024");
+    expect(screen.getByLabelText("分割の文字数")).toHaveValue("1500");
     expect(screen.getByLabelText("APIキー")).toHaveValue("");
     expect(screen.getByText("使用中")).toBeInTheDocument();
   });
@@ -121,7 +122,10 @@ describe("SettingsDialog", () => {
       baseUrl: "http://192.168.0.5:8000/v1",
       model: "pfnet/plamo-2-translate",
     });
-    expect(updateMaxTokens).toHaveBeenCalledWith(1024);
+    expect(updateGeneration).toHaveBeenCalledWith({
+      maxTokens: 1024,
+      chunkBudget: 1500,
+    });
     expect(setApiKey).not.toHaveBeenCalled();
     expect(clearApiKey).not.toHaveBeenCalled();
     await vi.waitFor(() =>
@@ -173,7 +177,34 @@ describe("SettingsDialog", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("1以上の整数");
     expect(updateProfile).not.toHaveBeenCalled();
-    expect(updateMaxTokens).not.toHaveBeenCalled();
+    expect(updateGeneration).not.toHaveBeenCalled();
+  });
+
+  it("分割の文字数が範囲外なら、保存しない", async () => {
+    const user = await openDialog();
+
+    const budget = screen.getByLabelText("分割の文字数");
+    await user.clear(budget);
+    await user.type(budget, "0");
+    await user.click(screen.getByRole("button", { name: "保存" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("分割の文字数");
+    expect(updateProfile).not.toHaveBeenCalled();
+    expect(updateGeneration).not.toHaveBeenCalled();
+  });
+
+  it("分割の文字数を変えて保存する", async () => {
+    const user = await openDialog();
+
+    const budget = screen.getByLabelText("分割の文字数");
+    await user.clear(budget);
+    await user.type(budget, "800");
+    await user.click(screen.getByRole("button", { name: "保存" }));
+
+    expect(updateGeneration).toHaveBeenCalledWith({
+      maxTokens: 1024,
+      chunkBudget: 800,
+    });
   });
 
   it("保存が拒否されたら、理由を表示し、ダイアログは閉じない", async () => {

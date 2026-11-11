@@ -36,6 +36,7 @@ export const ja = {
       stopped: "翻訳を停止しました",
       error: "翻訳できませんでした",
     },
+    progress: "{{current}}/{{total}}",
     statsExact: "{{speed}} tokens/s",
     statsEstimated: "約 {{speed}} tokens/s",
     warnings: {
@@ -85,6 +86,9 @@ export const ja = {
     maxTokens: "最大出力トークン数",
     maxTokensHint:
       "1回の翻訳で出力するトークン数の上限です。すべての接続先で共通です。",
+    chunkBudget: "分割の文字数",
+    chunkBudgetHint:
+      "長い原文を、この文字数までの塊に分けて順に翻訳します。すべての接続先で共通です。",
     save: "保存",
     saving: "保存しています…",
     cancel: "キャンセル",
@@ -135,6 +139,8 @@ export const ja = {
     invalidResponse: "サーバーの応答を解釈できませんでした: {{detail}}",
     emptyText: "翻訳する文章を入力してください。",
     invalidMaxTokens: "最大出力トークン数は、1以上の整数で入力してください。",
+    invalidChunkBudget:
+      "分割の文字数は、1以上100万以下の整数で入力してください。",
     invalidProfileName: {
       empty: "接続先の名前を入力してください。",
       tooLong: "接続先の名前は60文字以内にしてください。",

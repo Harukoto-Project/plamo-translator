@@ -64,6 +64,7 @@ describe("describeAppError", () => {
       { kind: "invalidResponse", detail: "d" },
       { kind: "emptyText" },
       { kind: "invalidMaxTokens" },
+      { kind: "invalidChunkBudget" },
       { kind: "invalidProfileName", reason: "empty" },
       { kind: "invalidProfileName", reason: "tooLong" },
       { kind: "profileNotFound" },

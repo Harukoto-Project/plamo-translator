@@ -3,12 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { type KeyChange, useSaveConnection } from "@/hooks/use-settings";
 import { describeAppError } from "@/lib/app-error";
@@ -110,7 +105,9 @@ export function ConnectionForm({
             type="password"
             value={apiKey}
             onChange={(event) => setApiKey(event.target.value)}
-            placeholder={keySaved ? t("settings.apiKeySaved") : t("settings.apiKeyHint")}
+            placeholder={
+              keySaved ? t("settings.apiKeySaved") : t("settings.apiKeyHint")
+            }
             autoComplete="off"
           />
           {keySaved && apiKey === "" && (

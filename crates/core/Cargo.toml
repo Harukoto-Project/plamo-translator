@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
-description = "plamo-translator の Tauri 非依存のロジックと型(翻訳・分割・履歴・秘密情報など)"
+description = "plamo-translator の Tauri 非依存のロジックと型(翻訳・ファイル取り込み・秘密情報など)"
 
 [dependencies]
 serde.workspace = true
@@ -15,6 +15,8 @@ futures-util.workspace = true
 keyring.workspace = true
 tokio = { workspace = true, features = ["macros", "rt", "time"] }
 tokio-util.workspace = true
+base64 = "0.23.1"
+pdf_oxide = { version = "0.3.78", default-features = false }
 
 [dev-dependencies]
 tempfile.workspace = true

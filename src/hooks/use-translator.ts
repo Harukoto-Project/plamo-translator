@@ -58,6 +58,16 @@ export function useTranslator() {
     dispatch({ type: "reset" });
   }, [running]);
 
+  /** 履歴の訳文を画面に戻す。再翻訳はしない。実行中は何もしない。 */
+  const load = useCallback(
+    (text: string) => {
+      if (running) return;
+      requestIdRef.current = null;
+      dispatch({ type: "load", text });
+    },
+    [running],
+  );
+
   // 画面を閉じるとき、実行中の翻訳をサーバーに続けさせない
   const runningRef = useRef(running);
   runningRef.current = running;
@@ -71,5 +81,5 @@ export function useTranslator() {
     [],
   );
 
-  return { state, translate, stop, reset };
+  return { state, translate, stop, reset, load };
 }

@@ -51,6 +51,8 @@ export type TranslateAction =
   | { type: "stop" }
   /** 訳文などを消して、最初の状態に戻す(実行中は何もしない) */
   | { type: "reset" }
+  /** 履歴から訳文を戻す。再翻訳はしない。実行中は何もしない */
+  | { type: "load"; text: string }
   | { type: "event"; event: TranslateEvent }
   /** イベントを待たずに失敗した(IPC の呼び出し自体が失敗した) */
   | { type: "fail"; error: AppError };
@@ -69,6 +71,10 @@ export function translateReducer(
         : state;
     case "reset":
       return state.status === "running" ? state : initialTranslateState;
+    case "load":
+      return state.status === "running"
+        ? state
+        : { ...initialTranslateState, status: "done", text: action.text };
     case "fail":
       return state.status === "running"
         ? { ...state, status: "error", error: action.error }

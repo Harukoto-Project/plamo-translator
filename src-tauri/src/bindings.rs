@@ -19,6 +19,11 @@ pub fn builder() -> Builder<tauri::Wry> {
         .disable_serde_phases()
         .commands(collect_commands![
             commands::app::app_info,
+            commands::history::history_delete,
+            commands::history::history_list,
+            commands::history::history_load,
+            commands::history::history_rename,
+            commands::history::history_save,
             commands::import::import_extract,
             commands::import::import_pick_file,
             commands::profiles::models_list,

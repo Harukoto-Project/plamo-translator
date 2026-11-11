@@ -39,6 +39,24 @@ export function describeAppError(error: AppError, t: TFunction): string {
       return t("errors.duplicateProfile");
     case "lastProfile":
       return t("errors.lastProfile");
+    case "invalidHistoryId":
+      return t("errors.invalidHistoryId");
+    case "historyNotFound":
+      return t("errors.historyNotFound");
+    case "historyVersionUnsupported":
+      return t("errors.historyVersionUnsupported", { version: error.version });
+    case "historyBroken":
+      return t("errors.historyBroken");
+    case "historyReadFailed":
+      return t("errors.historyReadFailed", { detail: error.detail });
+    case "historyWriteFailed":
+      return t("errors.historyWriteFailed", { detail: error.detail });
+    case "historyDeleteFailed":
+      return t("errors.historyDeleteFailed", { detail: error.detail });
+    case "historyTitleEmpty":
+      return t("errors.historyTitleEmpty");
+    case "historyTitleTooLong":
+      return t("errors.historyTitleTooLong", { max: error.max });
     case "fileEmpty":
       return t("errors.fileEmpty");
     case "fileTooLarge":

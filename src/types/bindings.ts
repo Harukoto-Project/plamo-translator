@@ -6,6 +6,20 @@ import { invoke as __TAURI_INVOKE, Channel } from "@tauri-apps/api/core";
 export const commands = {
 	/**  アプリ名とバージョンを返す。 */
 	appInfo: () => __TAURI_INVOKE<AppInfo>("app_info"),
+	/**  履歴を削除する。 */
+	historyDelete: (id: string) => typedError<null, AppError>(__TAURI_INVOKE("history_delete", { id })),
+	/**  履歴の一覧(更新が新しい順)。原文と訳文は含まない。 */
+	historyList: () => typedError<HistoryListing, AppError>(__TAURI_INVOKE("history_list")),
+	/**  履歴1件(原文と訳文を含む)。 */
+	historyLoad: (id: string) => typedError<HistoryEntry, AppError>(__TAURI_INVOKE("history_load", { id })),
+	/**  履歴の名前を変える。 */
+	historyRename: (id: string, title: string) => typedError<HistorySummary, AppError>(__TAURI_INVOKE("history_rename", { id, title })),
+	/**
+	 *  完了した翻訳を保存する。原文か訳文が空白だけなら、何も保存せず `None`。
+	 * 
+	 *  中断やエラーで終わった翻訳は、このコマンドを呼ばない(呼び出すかどうかはフロントが決める)。
+	 */
+	historySave: (entry: SaveHistory) => typedError<HistorySummary | null, AppError>(__TAURI_INVOKE("history_save", { entry })),
 	/**
 	 *  ドロップされたファイルの中身(base64)からテキストを取り出す。
 	 *  種類は中身で判定する。元ファイルは保存しない。
@@ -93,6 +107,24 @@ export type AppError =
 { kind: "duplicateProfile" } | 
 /**  最後の1件の接続先は削除できない */
 { kind: "lastProfile" } | 
+/**  履歴のIDがファイル名に使えない */
+{ kind: "invalidHistoryId" } | 
+/**  履歴が見つからない */
+{ kind: "historyNotFound" } | 
+/**  履歴ファイルが、このアプリより新しいバージョンで書かれている(読まず、上書きもしない) */
+{ kind: "historyVersionUnsupported"; version: number } | 
+/**  履歴ファイルを解釈できない(ファイルは変更しない) */
+{ kind: "historyBroken" } | 
+/**  履歴を読み込めなかった */
+{ kind: "historyReadFailed"; detail: string } | 
+/**  履歴を書き込めなかった */
+{ kind: "historyWriteFailed"; detail: string } | 
+/**  履歴を削除できなかった */
+{ kind: "historyDeleteFailed"; detail: string } | 
+/**  履歴の名前が空 */
+{ kind: "historyTitleEmpty" } | 
+/**  履歴の名前が長すぎる。`max` は許す文字数 */
+{ kind: "historyTitleTooLong"; max: number } | 
 /**  設定ファイルを読み込めなかった */
 { kind: "settingsReadFailed"; detail: string } | 
 /**  設定ファイルを書き込めなかった */
@@ -163,6 +195,37 @@ export type GenerationSettings = {
 	chunkBudget?: number,
 };
 
+/**  履歴1件。開いたとき、原文・訳文・言語を画面に戻すために使う。 */
+export type HistoryEntry = {
+	id: string,
+	title: string,
+	createdAt: number,
+	updatedAt: number,
+	/**  自動判定で解決した値。`auto` は保存しない */
+	sourceLang: Lang,
+	targetLang: Lang,
+	sourceText: string,
+	targetText: string,
+	/**  翻訳に使ったモデル名。空なら、サーバーの既定に任せたということ */
+	model: string,
+};
+
+/**  履歴の一覧。読めなかったファイルは一覧に入れず、件数だけ知らせる(ファイルには触らない)。 */
+export type HistoryListing = {
+	/**  更新が新しい順 */
+	entries: HistorySummary[],
+	/**  壊れている、または新しいversionのため一覧から外したファイルの数 */
+	skipped: number,
+};
+
+/**  一覧に出す1件。原文と訳文は含まない。時刻はUNIX秒。 */
+export type HistorySummary = {
+	id: string,
+	title: string,
+	createdAt: number,
+	updatedAt: number,
+};
+
 /**  原文欄に展開するテキスト。元ファイルは持たない。 */
 export type ImportedText = {
 	text: string,
@@ -224,6 +287,21 @@ export type ReplyStats = {
 	elapsedMs: number,
 	/**  サーバーがトークン数を返さず、受け取ったデータの数で代用したか */
 	estimated: boolean,
+};
+
+/**
+ *  履歴の保存の依頼。原文か訳文が空白だけなら、何も保存しない。
+ * 
+ *  接続先のURLとAPIキーは含めない。
+ */
+export type SaveHistory = {
+	/**  フロントが発行するUUID。1回の完了した翻訳につき1つ */
+	id: string,
+	sourceLang: Lang,
+	targetLang: Lang,
+	sourceText: string,
+	targetText: string,
+	model: string,
 };
 
 /**

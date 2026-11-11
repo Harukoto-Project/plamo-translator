@@ -3,6 +3,12 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TranslatePage } from "@/pages/translate/translate-page";
+import {
+  deleteHistory,
+  listHistory,
+  loadHistory,
+  saveHistory,
+} from "@/services/history";
 import { pickImportFile } from "@/services/import";
 import { AppCommandError } from "@/services/ipc";
 import { cancelTranslation, startTranslation } from "@/services/translate";
@@ -22,6 +28,19 @@ vi.mock("@/services/import", () => ({
 vi.mock("@/services/translate", () => ({
   startTranslation: vi.fn(),
   cancelTranslation: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@/services/history", () => ({
+  listHistory: vi.fn().mockResolvedValue({ entries: [], skipped: 0 }),
+  loadHistory: vi.fn(),
+  saveHistory: vi.fn().mockResolvedValue({
+    id: "saved",
+    title: "こんにちは",
+    createdAt: 1,
+    updatedAt: 1,
+  }),
+  renameHistory: vi.fn(),
+  deleteHistory: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/services/settings", () => ({
@@ -101,6 +120,8 @@ function renderPage() {
 beforeEach(() => {
   vi.mocked(startTranslation).mockReset();
   vi.mocked(cancelTranslation).mockClear();
+  vi.mocked(saveHistory).mockClear();
+  vi.mocked(listHistory).mockResolvedValue({ entries: [], skipped: 0 });
   vi.mocked(pickImportFile).mockReset();
   vi.mocked(pickImportFile).mockResolvedValue(null);
 });
@@ -277,6 +298,166 @@ describe("TranslatePage", () => {
       "最大出力トークン数に達した",
     );
     expect(screen.getByLabelText("訳文")).toHaveValue("Hi");
+  });
+
+  it("完了した翻訳だけを履歴に保存する", async () => {
+    const captured = captureTranslation();
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.type(screen.getByLabelText("原文"), "こんにちは");
+    await user.click(screen.getByRole("button", { name: "翻訳" }));
+    captured.emit({ type: "delta", text: "Hello" });
+    captured.emit({ type: "done" });
+    captured.finish();
+
+    await waitFor(() => expect(saveHistory).toHaveBeenCalledTimes(1));
+    expect(saveHistory).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceLang: "ja",
+        targetLang: "en",
+        sourceText: "こんにちは",
+        targetText: "Hello",
+        model: "m",
+      }),
+    );
+  });
+
+  it("停止した翻訳と、失敗した翻訳は履歴に保存しない", async () => {
+    const captured = captureTranslation();
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.type(screen.getByLabelText("原文"), "こんにちは");
+    await user.click(screen.getByRole("button", { name: "翻訳" }));
+    captured.emit({ type: "delta", text: "Hel" });
+    await user.click(await screen.findByRole("button", { name: "停止" }));
+    captured.emit({ type: "done" });
+    captured.finish();
+    await screen.findByText("翻訳を停止しました");
+    expect(saveHistory).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "翻訳" }));
+    captured.emit({ type: "error", error: { kind: "timeout" } });
+    captured.finish();
+    await screen.findByRole("alert");
+    expect(saveHistory).not.toHaveBeenCalled();
+  });
+
+  it("履歴を開くと、原文・訳文・言語を戻し、再翻訳はしない", async () => {
+    vi.mocked(listHistory).mockResolvedValue({
+      entries: [
+        {
+          id: "h1",
+          title: "保存した原文",
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ],
+      skipped: 0,
+    });
+    vi.mocked(loadHistory).mockResolvedValue({
+      id: "h1",
+      title: "保存した原文",
+      createdAt: 1,
+      updatedAt: 1,
+      sourceLang: "en",
+      targetLang: "ja",
+      sourceText: "Hello",
+      targetText: "こんにちは",
+      model: "m",
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(
+      await screen.findByRole("button", { name: "保存した原文" }),
+    );
+
+    expect(screen.getByLabelText("原文")).toHaveValue("Hello");
+    expect(screen.getByLabelText("訳文")).toHaveValue("こんにちは");
+    expect(
+      screen.getByRole("combobox", { name: "原文の言語" }),
+    ).toHaveTextContent("English");
+    expect(
+      screen.getByRole("combobox", { name: "訳文の言語" }),
+    ).toHaveTextContent("日本語");
+    expect(startTranslation).not.toHaveBeenCalled();
+    expect(saveHistory).not.toHaveBeenCalled();
+  });
+
+  it("タイトルで履歴を絞り込む", async () => {
+    vi.mocked(listHistory).mockResolvedValue({
+      entries: [
+        { id: "a", title: "京都の旅行", createdAt: 1, updatedAt: 2 },
+        { id: "b", title: "天気の話", createdAt: 1, updatedAt: 1 },
+      ],
+      skipped: 0,
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(
+      await screen.findByRole("button", { name: "京都の旅行" }),
+    ).toBeInTheDocument();
+    await user.type(
+      screen.getByRole("searchbox", { name: "履歴を検索" }),
+      "天気",
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "京都の旅行" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "天気の話" }),
+    ).toBeInTheDocument();
+  });
+
+  it("新規にすると、原文と訳文を空にする", async () => {
+    const captured = captureTranslation();
+    const user = userEvent.setup();
+    renderPage();
+    await user.type(screen.getByLabelText("原文"), "こんにちは");
+    await user.click(screen.getByRole("button", { name: "翻訳" }));
+    captured.emit({ type: "delta", text: "Hello" });
+    captured.emit({ type: "done" });
+    captured.finish();
+    await screen.findByText("翻訳が完了しました");
+
+    await user.click(screen.getByRole("button", { name: "新規" }));
+
+    expect(screen.getByLabelText("原文")).toHaveValue("");
+    expect(screen.getByLabelText("訳文")).toHaveValue("");
+  });
+
+  it("削除は確認してから行い、開いていた履歴の選択を外す", async () => {
+    vi.mocked(listHistory).mockResolvedValue({
+      entries: [{ id: "h1", title: "消す原文", createdAt: 1, updatedAt: 1 }],
+      skipped: 0,
+    });
+    vi.mocked(loadHistory).mockResolvedValue({
+      id: "h1",
+      title: "消す原文",
+      createdAt: 1,
+      updatedAt: 1,
+      sourceLang: "ja",
+      targetLang: "en",
+      sourceText: "あ",
+      targetText: "a",
+      model: "m",
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "消す原文" }));
+    await user.click(
+      screen.getByRole("button", { name: "「消す原文」を削除" }),
+    );
+    expect(deleteHistory).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "削除" }));
+
+    await waitFor(() => expect(deleteHistory).toHaveBeenCalledWith("h1"));
+    expect(screen.getByLabelText("原文")).toHaveValue("あ");
   });
 
   it("画面を閉じたとき、実行中の翻訳を中断する", async () => {

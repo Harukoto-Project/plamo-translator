@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "PLaMo Translator",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "identifier": "io.github.harukoto-project.plamo-translator",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -40,7 +40,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "PLACEHOLDER_REPLACE_WITH_TAURI_UPDATER_PUBKEY",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDFCNkJGQjhBMDVDRkIxNEUKUldST3NjOEZpdnRyRzFDMkhadnFHQVNod25JcmZOQVFVL2tVSFl0QnUwNURpQXA5cGZjcHhrUGIK",
       "endpoints": [
         "https://github.com/Harukoto-Project/plamo-translator/releases/latest/download/latest.json"
       ]

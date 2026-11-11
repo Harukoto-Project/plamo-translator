@@ -1,7 +1,12 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "メインウィンドウの権限(最小限)。http・shell・fs のプラグインは入れない",
+  "description": "メインウィンドウの権限(最小限)。http・shell・fs のプラグインは入れない。更新は確認とインストール、再起動だけ許可する",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": [
+    "core:default",
+    "updater:allow-check",
+    "updater:allow-download-and-install",
+    "process:allow-restart"
+  ]
 }

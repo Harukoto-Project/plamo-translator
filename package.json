@@ -15,7 +15,7 @@
     "test:watch": "vitest",
     "lint": "biome check .",
     "format": "biome check --write .",
-    "bindings": "cargo run -p plamo-translator --bin export-bindings",
+    "bindings": "cargo run -p plamo-translator --bin export-bindings --features export-bindings",
     "rust:fmt": "cargo fmt --all",
     "rust:lint": "cargo clippy --workspace --all-targets -- -D warnings",
     "rust:test": "cargo test --workspace"
@@ -25,6 +25,8 @@
     "@tailwindcss/vite": "^4.3.5",
     "@tanstack/react-query": "^5.107.1",
     "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-process": "2.4.0",
+    "@tauri-apps/plugin-updater": "2.14.1",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.2",
     "i18next": "^27.1.0",

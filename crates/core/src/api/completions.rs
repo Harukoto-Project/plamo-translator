@@ -7,12 +7,12 @@
 use std::time::Instant;
 
 use futures_util::StreamExt;
-use reqwest::{RequestBuilder, Response};
+use reqwest::Response;
 use serde_json::{Value, json};
 use tokio_util::sync::CancellationToken;
 
 use super::connection::Connection;
-use super::http::{describe_error, status_error, stream_error};
+use super::http::{authorized, describe_error, status_error, stream_error};
 use super::sse::SseLines;
 use super::stats::{ReplyStats, StreamStats};
 use crate::error::AppError;
@@ -78,14 +78,6 @@ fn cancelled() -> StreamOutcome {
     StreamOutcome {
         cancelled: true,
         ..StreamOutcome::default()
-    }
-}
-
-/// APIキーが設定されていれば、Bearerトークンとして付ける。
-fn authorized(request: RequestBuilder, connection: &Connection) -> RequestBuilder {
-    match connection.api_key.trim() {
-        "" => request,
-        key => request.bearer_auth(key),
     }
 }
 

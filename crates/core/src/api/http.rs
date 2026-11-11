@@ -2,6 +2,7 @@
 
 use std::time::Duration;
 
+use reqwest::RequestBuilder;
 use serde_json::Value;
 
 use super::connection::Connection;
@@ -19,6 +20,14 @@ pub fn build_client() -> Result<reqwest::Client, AppError> {
         .connect_timeout(Duration::from_secs(10))
         .build()
         .map_err(|e| AppError::internal(format!("HTTPクライアントを初期化できませんでした: {e}")))
+}
+
+/// APIキーが設定されていれば、Bearerトークンとして付ける。空なら何も付けない。
+pub(crate) fn authorized(request: RequestBuilder, connection: &Connection) -> RequestBuilder {
+    match connection.api_key.trim() {
+        "" => request,
+        key => request.bearer_auth(key),
+    }
 }
 
 /// 通信レベルの失敗を、種別と値にする。

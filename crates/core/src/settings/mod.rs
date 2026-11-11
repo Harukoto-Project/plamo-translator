@@ -12,3 +12,4 @@ pub use model::{
     MAX_MAX_TOKENS, Settings,
 };
 pub use store::{SETTINGS_VERSION, SettingsStore};
+pub use url::validate_base_url;

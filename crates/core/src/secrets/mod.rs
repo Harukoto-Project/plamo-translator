@@ -3,15 +3,13 @@
 //! APIキーなどの秘密情報は、設定ファイルや履歴に書かず、必ず [`SecretStore`] を通す。
 //! 本番の実装は [`KeyringStore`]。テストではメモリ上の代用品を使う。
 
-mod api_key;
 mod keyring_store;
 
 use std::fmt;
 
-pub use api_key::{API_KEY_ACCOUNT, KeyStatus, clear_key, key_status, read_key, set_key};
 pub use keyring_store::KeyringStore;
 
-/// 資格情報ストアのサービス名。アカウント名は秘密情報の持ち主が決める(→ [`API_KEY_ACCOUNT`])。
+/// 資格情報ストアのサービス名。アカウント名は秘密情報の持ち主が決める(プロファイルのIDから作る)。
 pub const SERVICE: &str = "plamo-translator";
 
 /// 資格情報ストアの失敗。OSが返したメッセージを持つ。

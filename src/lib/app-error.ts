@@ -28,6 +28,14 @@ export function describeAppError(error: AppError, t: TFunction): string {
       return t("errors.emptyText");
     case "invalidMaxTokens":
       return t("errors.invalidMaxTokens");
+    case "invalidProfileName":
+      return t(`errors.invalidProfileName.${error.reason}`);
+    case "profileNotFound":
+      return t("errors.profileNotFound");
+    case "duplicateProfile":
+      return t("errors.duplicateProfile");
+    case "lastProfile":
+      return t("errors.lastProfile");
     case "settingsReadFailed":
       return t("errors.settingsReadFailed", { detail: error.detail });
     case "settingsWriteFailed":

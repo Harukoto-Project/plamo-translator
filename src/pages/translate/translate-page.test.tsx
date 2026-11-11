@@ -21,11 +21,45 @@ vi.mock("@/services/settings", () => ({
   getSettings: vi.fn().mockResolvedValue({
     connection: { baseUrl: "http://localhost:8000/v1", model: "m" },
     generation: { maxTokens: 1024 },
+    profiles: {
+      activeId: "default",
+      profiles: [
+        {
+          id: "default",
+          name: "vLLM",
+          baseUrl: "http://localhost:8000/v1",
+          model: "m",
+        },
+      ],
+    },
   }),
-  updateSettings: vi.fn(),
+  updateMaxTokens: vi.fn(),
   getApiKeyStatus: vi.fn().mockResolvedValue("unset"),
   setApiKey: vi.fn(),
   clearApiKey: vi.fn(),
+}));
+
+vi.mock("@/services/profiles", () => ({
+  getProfiles: vi.fn().mockResolvedValue({
+    activeId: "default",
+    profiles: [
+      {
+        id: "default",
+        name: "vLLM",
+        baseUrl: "http://localhost:8000/v1",
+        model: "m",
+      },
+    ],
+  }),
+  updateProfile: vi.fn(),
+  addProfile: vi.fn(),
+  removeProfile: vi.fn(),
+  setActiveProfile: vi.fn(),
+  selectModel: vi.fn(),
+}));
+
+vi.mock("@/services/models", () => ({
+  listModels: vi.fn().mockResolvedValue([]),
 }));
 
 /** `startTranslation` の呼び出しを捕まえ、テストからイベントを流せるようにする。 */

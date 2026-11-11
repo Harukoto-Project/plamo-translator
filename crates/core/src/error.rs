@@ -9,6 +9,16 @@ use std::fmt;
 use serde::Serialize;
 use specta::Type;
 
+/// 接続先の名前が正しくない理由。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub enum NameProblem {
+    /// 空
+    Empty,
+    /// 長すぎる
+    TooLong,
+}
+
 /// ベースURLが正しくない理由。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -48,6 +58,14 @@ pub enum AppError {
     EmptyText,
     /// 最大出力トークン数が正しくない
     InvalidMaxTokens,
+    /// 接続先の名前が正しくない
+    InvalidProfileName { reason: NameProblem },
+    /// 接続先が見つからない
+    ProfileNotFound,
+    /// 同じIDの接続先が既にある
+    DuplicateProfile,
+    /// 最後の1件の接続先は削除できない
+    LastProfile,
     /// 設定ファイルを読み込めなかった
     SettingsReadFailed { detail: String },
     /// 設定ファイルを書き込めなかった

@@ -7,6 +7,7 @@ pub mod api;
 pub mod app_info;
 pub mod error;
 pub mod fs;
+pub mod profiles;
 pub mod secrets;
 pub mod settings;
 pub mod translate;

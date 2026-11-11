@@ -14,7 +14,10 @@ pub async fn settings_get(state: State<'_, AppState>) -> Result<Settings, AppErr
     blocking(move || settings.load()).await
 }
 
-/// 設定を検査して保存する。保存した内容(URLなどを整えたもの)を返す。
+/// 生成の設定(`generation`)だけを検査して保存する。
+///
+/// 接続先はプロファイルのコマンドが更新する。引数の `connection` と `profiles` は使わない。
+/// 知らない項目と、使用中プロファイルから書き戻した `connection` は残す。
 #[tauri::command]
 #[specta::specta]
 pub async fn settings_update(
@@ -22,5 +25,5 @@ pub async fn settings_update(
     settings: Settings,
 ) -> Result<Settings, AppError> {
     let store = state.settings.clone();
-    blocking(move || store.save(settings)).await
+    blocking(move || store.update_generation(settings.generation)).await
 }

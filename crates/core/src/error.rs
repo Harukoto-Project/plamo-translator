@@ -68,6 +68,24 @@ pub enum AppError {
     DuplicateProfile,
     /// 最後の1件の接続先は削除できない
     LastProfile,
+    /// 履歴のIDがファイル名に使えない
+    InvalidHistoryId,
+    /// 履歴が見つからない
+    HistoryNotFound,
+    /// 履歴ファイルが、このアプリより新しいバージョンで書かれている(読まず、上書きもしない)
+    HistoryVersionUnsupported { version: u32 },
+    /// 履歴ファイルを解釈できない(ファイルは変更しない)
+    HistoryBroken,
+    /// 履歴を読み込めなかった
+    HistoryReadFailed { detail: String },
+    /// 履歴を書き込めなかった
+    HistoryWriteFailed { detail: String },
+    /// 履歴を削除できなかった
+    HistoryDeleteFailed { detail: String },
+    /// 履歴の名前が空
+    HistoryTitleEmpty,
+    /// 履歴の名前が長すぎる。`max` は許す文字数
+    HistoryTitleTooLong { max: u32 },
     /// 設定ファイルを読み込めなかった
     SettingsReadFailed { detail: String },
     /// 設定ファイルを書き込めなかった

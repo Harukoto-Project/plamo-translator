@@ -140,6 +140,26 @@ describe("translateReducer", () => {
     expect(state).toEqual(initialTranslateState);
   });
 
+  it("履歴から戻すと、訳文だけを完了の状態にする", () => {
+    const state = run(
+      { type: "start" },
+      delta("古い"),
+      { type: "event", event: { type: "done" } },
+      { type: "load", text: "保存してあった訳" },
+    );
+    expect(state.status).toBe("done");
+    expect(state.text).toBe("保存してあった訳");
+    expect(state.stats).toBeNull();
+    expect(state.warnings).toEqual([]);
+  });
+
+  it("実行中は、履歴から戻さない", () => {
+    const running = run({ type: "start" }, delta("Hel"));
+    expect(translateReducer(running, { type: "load", text: "別の訳" })).toBe(
+      running,
+    );
+  });
+
   it("実行中は、リセットしない", () => {
     const running = run({ type: "start" }, delta("Hel"));
     expect(translateReducer(running, { type: "reset" })).toBe(running);

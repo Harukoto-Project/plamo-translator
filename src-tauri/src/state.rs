@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use plamo_translator_core::api::ApiClient;
 use plamo_translator_core::error::AppError;
+use plamo_translator_core::history::HistoryStore;
 use plamo_translator_core::profiles::ProfileService;
 use plamo_translator_core::secrets::{KeyringStore, SecretStore};
 use plamo_translator_core::settings::SettingsStore;
@@ -15,17 +16,20 @@ pub struct AppState {
     pub settings: Arc<SettingsStore>,
     /// 接続プロファイルと、プロファイルごとのAPIキー
     pub profiles: Arc<ProfileService>,
+    /// 翻訳履歴(`<データディレクトリ>/history/<id>.json`)
+    pub history: Arc<HistoryStore>,
 }
 
 impl AppState {
     /// `data_dir` はアプリのデータディレクトリ。
     pub fn new(data_dir: PathBuf) -> Result<Self, AppError> {
-        let settings = Arc::new(SettingsStore::new(data_dir));
+        let settings = Arc::new(SettingsStore::new(data_dir.clone()));
         let secrets: Arc<dyn SecretStore> = Arc::new(KeyringStore);
         Ok(Self {
             api: ApiClient::new()?,
             profiles: Arc::new(ProfileService::new(settings.clone(), secrets)),
             settings,
+            history: Arc::new(HistoryStore::new(data_dir.join("history"))),
         })
     }
 }

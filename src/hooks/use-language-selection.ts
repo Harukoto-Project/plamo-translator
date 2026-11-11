@@ -67,6 +67,15 @@ export function useLanguageSelection(text: string) {
     setTarget(pair.target);
   };
 
+  /**
+   * 履歴に保存してあった言語を、そのまま手動の選択にする。
+   * 自動判定には戻さない(`auto` は保存していない)。
+   */
+  const apply = (source: Lang, target: Lang) => {
+    setChoice(source);
+    setTarget(target);
+  };
+
   /** 原文と訳文の言語を入れ替える。原文は、判定した言語を手動の選択にする。 */
   const swap = () => {
     const pair = resolve();
@@ -82,6 +91,7 @@ export function useLanguageSelection(text: string) {
     detected: choice === "auto" ? detected : undefined,
     selectSource,
     selectTarget,
+    apply,
     swap,
     resolve,
   };

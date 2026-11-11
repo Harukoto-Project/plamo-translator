@@ -117,6 +117,39 @@ export const ja = {
     installFailedUnknown: "更新できませんでした。",
     missing: "更新が見つかりません。",
   },
+  history: {
+    title: "履歴",
+    new: "新規",
+    open: "履歴",
+    close: "履歴を閉じる",
+    searchLabel: "履歴を検索",
+    searchPlaceholder: "タイトルで検索",
+    loading: "履歴を読み込んでいます…",
+    loadFailed: "履歴を読み込めませんでした",
+    retry: "再読み込み",
+    empty: "履歴はまだありません",
+    noResults: "見つかりませんでした",
+    skipped:
+      "読み込めない履歴が{{count}}件あります。ファイルはそのまま残しています。",
+    saveFailed: "履歴を保存できませんでした",
+    delete: "削除",
+    deleteTitle: "履歴を削除",
+    deleteDescription: "「{{title}}」を削除します。この操作は取り消せません。",
+    deleting: "削除しています…",
+    deleteItem: "「{{title}}」を削除",
+    renameItem: "「{{title}}」の名前を変更",
+    renameTitle: "名前を変更",
+    renameLabel: "タイトル",
+    renameSave: "保存",
+    renaming: "保存しています…",
+    cancel: "キャンセル",
+    groups: {
+      today: "今日",
+      yesterday: "昨日",
+      week: "過去7日間",
+      older: "それ以前",
+    },
+  },
   // Rust が返すエラーの種別ごとの文言(`lib/app-error.ts` が引く)
   errors: {
     connectionFailed:
@@ -148,6 +181,17 @@ export const ja = {
     profileNotFound: "接続先が見つかりません。",
     duplicateProfile: "同じ接続先が既にあります。",
     lastProfile: "最後の接続先は削除できません。",
+    invalidHistoryId: "履歴のIDが正しくありません。",
+    historyNotFound: "履歴が見つかりません。",
+    historyVersionUnsupported:
+      "この履歴は、このアプリより新しいバージョン(v{{version}})で作られています。アプリを更新してください。",
+    historyBroken:
+      "履歴のファイルを解釈できません。ファイルは変更していません。",
+    historyReadFailed: "履歴を読み込めませんでした: {{detail}}",
+    historyWriteFailed: "履歴を保存できませんでした: {{detail}}",
+    historyDeleteFailed: "履歴を削除できませんでした: {{detail}}",
+    historyTitleEmpty: "名前を入力してください。",
+    historyTitleTooLong: "名前は{{max}}文字以内にしてください。",
     settingsReadFailed: "設定ファイルを読み込めませんでした: {{detail}}",
     settingsWriteFailed: "設定ファイルを保存できませんでした: {{detail}}",
     settingsVersionUnsupported:
